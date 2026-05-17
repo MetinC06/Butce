@@ -40,6 +40,8 @@ export default function DashboardPage() {
   const [savings, setSavings] = useState<Saving[]>([])
   const [loading, setLoading] = useState(true)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  const [myName, setMyName] = useState('Ben')
+  const [spouseName, setSpouseName] = useState('Eşim')
   const [tab, setTab] = useState<Tab>('tumu')
 
   const fetchData = useCallback(async () => {
@@ -55,6 +57,9 @@ export default function DashboardPage() {
     ])
 
     setCurrentUserId(user?.id || null)
+    const isMetin = user?.email === 'metincanbek360@gmail.com'
+    setMyName(isMetin ? 'Metin' : 'Simge')
+    setSpouseName(isMetin ? 'Simge' : 'Metin')
     setIncomes(inc || [])
     setExpenses(exp || [])
     setSavings(sav || [])
@@ -122,7 +127,7 @@ export default function DashboardPage() {
                 {(['tumu', 'ben', 'esim'] as Tab[]).map(t => (
                   <button key={t} onClick={() => setTab(t)}
                     className={`flex-1 py-3 text-sm font-semibold transition-colors ${tab === t ? 'text-green-400 border-b-2 border-green-400' : 'text-zinc-500'}`}>
-                    {t === 'tumu' ? 'Tümü' : t === 'ben' ? 'Metin' : 'Simge'}
+                    {t === 'tumu' ? 'Tümü' : t === 'ben' ? myName : spouseName}
                   </button>
                 ))}
               </div>
@@ -130,7 +135,7 @@ export default function DashboardPage() {
                 {tab !== 'tumu' ? (
                   <div className={`rounded-2xl p-4 mb-4 ${tabIncome - tabExpense >= 0 ? 'bg-green-600' : 'bg-red-600'}`}>
                     <p className="text-green-100 text-sm font-medium mb-1">
-                      {tab === 'ben' ? 'Metin' : 'Simge'} · Anlık Bakiye
+                      {tab === 'ben' ? myName : spouseName} · Anlık Bakiye
                     </p>
                     <p className="text-3xl font-bold text-white">{formatEUR(tabIncome - tabExpense)}</p>
                     <div className="flex gap-6 mt-3">
