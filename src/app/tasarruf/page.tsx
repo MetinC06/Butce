@@ -10,6 +10,16 @@ function formatEUR(amount: number) {
   return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount)
 }
 
+function parseAmount(val: string) {
+  const cleaned = val.trim().replace(/[^\d,.-]/g, '')
+  const lastComma = cleaned.lastIndexOf(',')
+  const lastPeriod = cleaned.lastIndexOf('.')
+  const normalized = lastComma > lastPeriod
+    ? cleaned.replace(/\./g, '').replace(',', '.')
+    : cleaned.replace(/,/g, '')
+  return parseFloat(normalized) || 0
+}
+
 export default function TasarrufPage() {
   const supabase = createClient()
   const [savings, setSavings] = useState<Saving[]>([])
@@ -35,13 +45,13 @@ export default function TasarrufPage() {
     if (!name.trim()) return
     setSaving(true)
     const { data: { user } } = await supabase.auth.getUser()
-    await supabase.from('savings').insert({ user_id: user!.id, name: name.trim(), balance: parseFloat(balance) || 0 })
+    await supabase.from('savings').insert({ user_id: user!.id, name: name.trim(), balance: parseAmount(balance) })
     setName(''); setBalance(''); setShowForm(false); setSaving(false)
     fetchSavings()
   }
 
   const handleSaveEdit = async (sv: Saving) => {
-    const val = parseFloat(editAmount) || 0
+    const val = parseAmount(editAmount)
     let newBalance: number
     if (editMode === 'ekle') newBalance = Number(sv.balance) + val
     else if (editMode === 'cikar') newBalance = Number(sv.balance) - val
@@ -79,8 +89,8 @@ export default function TasarrufPage() {
               </div>
               <div>
                 <label className="text-sm font-medium text-zinc-300 mb-1 block">Mevcut Bakiye (€)</label>
-                <input type="number" value={balance} onChange={e => setBalance(e.target.value)} placeholder="0"
-                  className="w-full px-4 py-3 rounded-xl border border-zinc-700 bg-zinc-800 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-base" inputMode="decimal" />
+                <input type="text" value={balance} onChange={e => setBalance(e.target.value)} placeholder="0"
+                  className="w-full px-4 py-3 rounded-xl border border-zinc-700 bg-zinc-800 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-base" inputMode="decimal" autoCorrect="off" autoComplete="off" />
               </div>
               <div className="flex gap-3 pt-1">
                 <button type="button" onClick={() => setShowForm(false)} className="flex-1 py-3 rounded-xl border border-zinc-700 text-zinc-300 font-medium">İptal</button>
@@ -145,12 +155,14 @@ export default function TasarrufPage() {
                       </div>
                       <div className="flex gap-2">
                         <input
-                          type="number"
+                          type="text"
                           value={editAmount}
                           onChange={e => setEditAmount(e.target.value)}
                           placeholder="Tutar (€)"
                           className="flex-1 px-3 py-2.5 rounded-xl border border-zinc-700 bg-zinc-800 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                           inputMode="decimal"
+                          autoCorrect="off"
+                          autoComplete="off"
                           autoFocus
                         />
                         <button
@@ -165,9 +177,9 @@ export default function TasarrufPage() {
                         <p className="text-xs text-zinc-500 text-right">
                           Yeni bakiye: <span className="text-white font-semibold">
                             {formatEUR(
-                              editMode === 'ekle' ? Number(sv.balance) + (parseFloat(editAmount) || 0)
-                              : editMode === 'cikar' ? Number(sv.balance) - (parseFloat(editAmount) || 0)
-                              : parseFloat(editAmount) || 0
+                              editMode === 'ekle' ? Number(sv.balance) + parseAmount(editAmount)
+                              : editMode === 'cikar' ? Number(sv.balance) - parseAmount(editAmount)
+                              : parseAmount(editAmount)
                             )}
                           </span>
                         </p>
