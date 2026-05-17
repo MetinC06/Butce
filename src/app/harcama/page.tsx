@@ -180,10 +180,23 @@ export default function HarcamaPage() {
                     </button>
                   </div>
                 ) : (
-                  <select value={categoryId} onChange={e => setCategoryId(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-zinc-700 bg-zinc-800 text-white focus:outline-none focus:ring-2 focus:ring-green-500 text-base" required>
-                    {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.icon} {cat.name}</option>)}
-                  </select>
+                  <div className="flex flex-wrap gap-2">
+                    {categories.map(cat => (
+                      <div key={cat.id} className={`flex items-center gap-1.5 pl-2.5 pr-1 py-1.5 rounded-xl border text-sm font-medium transition-colors ${categoryId === cat.id ? 'bg-green-900 border-green-600 text-white' : 'bg-zinc-800 border-zinc-700 text-zinc-300'}`}>
+                        <button type="button" onClick={() => setCategoryId(cat.id)} className="flex items-center gap-1.5">
+                          <span>{cat.icon}</span>
+                          <span>{cat.name}</span>
+                        </button>
+                        <button type="button" onClick={async () => {
+                          await supabase.from('expense_categories').delete().eq('id', cat.id)
+                          setCategories(prev => prev.filter(c => c.id !== cat.id))
+                          if (categoryId === cat.id) setCategoryId(categories.find(c => c.id !== cat.id)?.id || '')
+                        }} className="ml-0.5 p-0.5 rounded text-zinc-500 active:text-red-400">
+                          <X size={13} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
 
