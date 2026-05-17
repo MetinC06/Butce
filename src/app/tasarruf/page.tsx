@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import BottomNav from '@/components/BottomNav'
 import Header from '@/components/Header'
-import { Plus, Pencil, Check, X } from 'lucide-react'
+import { Plus, Pencil, Check, X, Trash2 } from 'lucide-react'
 import { Saving } from '@/types/database'
 
 function formatEUR(amount: number) {
@@ -172,6 +172,12 @@ export default function TasarrufPage() {
                           </span>
                         </p>
                       )}
+                      <button
+                        onClick={() => handleDelete(sv.id)}
+                        className="w-full py-2 rounded-xl border border-red-900 text-red-500 text-sm font-medium flex items-center justify-center gap-2 active:bg-red-950"
+                      >
+                        <Trash2 size={15} /> Hesabı Sil
+                      </button>
                     </div>
                   )}
                 </div>
