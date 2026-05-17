@@ -57,7 +57,8 @@ export default function DashboardPage() {
     ])
 
     setCurrentUserId(user?.id || null)
-    const isMetin = user?.email === 'metincanbek360@gmail.com'
+    const email = user?.email || user?.user_metadata?.email || ''
+    const isMetin = email.toLowerCase() === 'metincanbek06@gmail.com'
     setMyName(isMetin ? 'Metin' : 'Simge')
     setSpouseName(isMetin ? 'Simge' : 'Metin')
     setIncomes(inc || [])
