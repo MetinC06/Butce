@@ -18,7 +18,9 @@ export default function KategorilerPage() {
   const [icon, setIcon] = useState('💰')
 
   const fetchCategories = async () => {
-    const { data } = await supabase.from('expense_categories').select('*').order('is_default', { ascending: false })
+    const { data } = await supabase.from('expense_categories').select('*')
+      .order('is_default', { ascending: false })
+      .order('created_at', { ascending: true })
     setCategories(data || [])
     setLoading(false)
   }
@@ -36,7 +38,6 @@ export default function KategorilerPage() {
   }
 
   const handleDelete = async (cat: ExpenseCategory) => {
-    if (cat.is_default) return
     await supabase.from('expense_categories').delete().eq('id', cat.id)
     setCategories(prev => prev.filter(c => c.id !== cat.id))
   }
@@ -95,9 +96,7 @@ export default function KategorilerPage() {
                         {cat.is_default && <span className="text-xs text-zinc-500">Varsayılan</span>}
                       </div>
                     </div>
-                    {!cat.is_default && (
-                      <button onClick={() => handleDelete(cat)} className="p-1.5 text-zinc-700 active:text-red-400"><Trash2 size={16} /></button>
-                    )}
+                    <button onClick={() => handleDelete(cat)} className="p-1.5 text-zinc-700 active:text-red-400"><Trash2 size={16} /></button>
                   </div>
                 ))}
               </div>

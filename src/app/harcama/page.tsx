@@ -76,7 +76,7 @@ export default function HarcamaPage() {
       created_by: user!.id,
     }).select().single()
     if (data) {
-      setCategories(prev => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)))
+      setCategories(prev => [...prev, data])
       setCategoryId(data.id)
     }
     setNewCatName(''); setNewCatIcon('💰'); setShowNewCat(false); setSavingCat(false)
