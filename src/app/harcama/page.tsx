@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import BottomNav from '@/components/BottomNav'
 import Header from '@/components/Header'
-import { Plus, Trash2, X } from 'lucide-react'
+import { Plus, Trash2, X, Pencil, Check } from 'lucide-react'
 import { Expense, ExpenseCategory } from '@/types/database'
 
 function formatEUR(amount: number) {
@@ -23,6 +23,13 @@ export default function HarcamaPage() {
   const [categoryId, setCategoryId] = useState('')
   const [description, setDescription] = useState('')
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
+
+  // Düzenleme
+  const [editId, setEditId] = useState<string | null>(null)
+  const [editAmount, setEditAmount] = useState('')
+  const [editDate, setEditDate] = useState('')
+  const [editDescription, setEditDescription] = useState('')
+  const [editSaving, setEditSaving] = useState(false)
 
   // Yeni kategori mini formu
   const [showNewCat, setShowNewCat] = useState(false)
@@ -78,6 +85,26 @@ export default function HarcamaPage() {
   const handleDelete = async (id: string) => {
     await supabase.from('expenses').delete().eq('id', id)
     setExpenses(prev => prev.filter(e => e.id !== id))
+  }
+
+  const openEdit = (expense: Expense) => {
+    setEditId(expense.id)
+    setEditAmount(String(expense.amount))
+    setEditDate(expense.date)
+    setEditDescription(expense.description || '')
+  }
+
+  const handleSaveEdit = async () => {
+    if (!editId) return
+    setEditSaving(true)
+    await supabase.from('expenses').update({
+      amount: parseFloat(editAmount) || 0,
+      date: editDate,
+      description: editDescription || null,
+    }).eq('id', editId)
+    setEditId(null)
+    setEditSaving(false)
+    fetchData()
   }
 
   const today = new Date().toISOString().split('T')[0]
@@ -201,25 +228,63 @@ export default function HarcamaPage() {
               {expenses.map((expense, i) => {
                 const cat = expense.expense_categories as { name: string; icon: string } | null
                 const isPlanned = expense.date > today
+                const isEditing = editId === expense.id
                 return (
-                  <div key={expense.id} className={`flex items-center justify-between px-4 py-3.5 ${i < expenses.length - 1 ? 'border-b border-zinc-800' : ''} ${isPlanned ? 'bg-amber-950/30' : ''}`}>
-                    <div className="flex items-center gap-3">
-                      <span className="text-xl">{cat?.icon || '💸'}</span>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium text-white">{cat?.name || 'Diğer'}</p>
-                          {isPlanned && <span className="text-xs bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded-md font-medium">Planlandı</span>}
+                  <div key={expense.id} className={`${i < expenses.length - 1 ? 'border-b border-zinc-800' : ''} ${isPlanned ? 'bg-amber-950/30' : ''}`}>
+                    <div className="flex items-center justify-between px-4 py-3.5">
+                      <button className="flex items-center gap-3 flex-1 text-left" onClick={() => isEditing ? setEditId(null) : openEdit(expense)}>
+                        <span className="text-xl">{cat?.icon || '💸'}</span>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-white">{cat?.name || 'Diğer'}</p>
+                            {isPlanned && <span className="text-xs bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded-md font-medium">Planlandı</span>}
+                          </div>
+                          <p className="text-xs text-zinc-500">
+                            {new Date(expense.date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}
+                            {expense.description ? ` · ${expense.description}` : ''}
+                          </p>
                         </div>
-                        <p className="text-xs text-zinc-500">
-                          {new Date(expense.date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}
-                          {expense.description ? ` · ${expense.description}` : ''}
-                        </p>
+                      </button>
+                      <div className="flex items-center gap-2">
+                        <span className={`font-bold ${isPlanned ? 'text-amber-400' : 'text-red-400'}`}>-{formatEUR(Number(expense.amount))}</span>
+                        <button onClick={() => isEditing ? setEditId(null) : openEdit(expense)} className={`p-1.5 ${isEditing ? 'text-zinc-400' : 'text-zinc-700 active:text-zinc-400'}`}>
+                          {isEditing ? <X size={16} /> : <Pencil size={15} />}
+                        </button>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <span className={`font-bold ${isPlanned ? 'text-amber-400' : 'text-red-400'}`}>-{formatEUR(Number(expense.amount))}</span>
-                      <button onClick={() => handleDelete(expense.id)} className="p-1.5 text-zinc-700 active:text-red-400"><Trash2 size={16} /></button>
-                    </div>
+
+                    {isEditing && (
+                      <div className="px-4 pb-4 space-y-2.5">
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="text-xs text-zinc-400 mb-1 block">Tutar (€)</label>
+                            <input type="number" value={editAmount} onChange={e => setEditAmount(e.target.value)}
+                              className="w-full px-3 py-2.5 rounded-xl border border-zinc-700 bg-zinc-800 text-white focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
+                              inputMode="decimal" autoFocus />
+                          </div>
+                          <div>
+                            <label className="text-xs text-zinc-400 mb-1 block">Tarih</label>
+                            <input type="date" value={editDate} onChange={e => setEditDate(e.target.value)}
+                              className="w-full min-w-0 max-w-full px-3 py-2.5 rounded-xl border border-zinc-700 bg-zinc-800 text-white focus:outline-none focus:ring-2 focus:ring-red-500 text-sm appearance-none" />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-xs text-zinc-400 mb-1 block">Açıklama</label>
+                          <input type="text" value={editDescription} onChange={e => setEditDescription(e.target.value)} placeholder="Detay..."
+                            className="w-full px-3 py-2.5 rounded-xl border border-zinc-700 bg-zinc-800 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-red-500 text-sm" />
+                        </div>
+                        <div className="flex gap-2">
+                          <button onClick={() => handleDelete(expense.id)}
+                            className="py-2 px-3 rounded-xl border border-red-900 text-red-500 text-sm flex items-center gap-1">
+                            <Trash2 size={15} /> Sil
+                          </button>
+                          <button onClick={handleSaveEdit} disabled={editSaving}
+                            className="flex-1 py-2 bg-red-600 text-white text-sm font-semibold rounded-xl disabled:opacity-50 flex items-center justify-center gap-1">
+                            <Check size={15} /> {editSaving ? 'Kaydediliyor...' : 'Kaydet'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )
               })}
