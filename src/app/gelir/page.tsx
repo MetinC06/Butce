@@ -32,7 +32,15 @@ export default function GelirPage() {
 
   useEffect(() => { fetchIncomes() }, [])
 
-  const parseAmount = (val: string) => parseFloat(val.replace(',', '.')) || 0
+  const parseAmount = (val: string) => {
+    const cleaned = val.trim().replace(/[^\d,.-]/g, '')
+    const lastComma = cleaned.lastIndexOf(',')
+    const lastPeriod = cleaned.lastIndexOf('.')
+    const normalized = lastComma > lastPeriod
+      ? cleaned.replace(/\./g, '').replace(',', '.')
+      : cleaned.replace(/,/g, '')
+    return parseFloat(normalized) || 0
+  }
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -69,7 +77,7 @@ export default function GelirPage() {
                 <label className="text-sm font-medium text-zinc-300 mb-1 block">Tutar (€)</label>
                 <input type="text" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0"
                   className="w-full px-4 py-3 rounded-xl border border-zinc-700 bg-zinc-800 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-green-500 text-base"
-                  required inputMode="decimal" />
+                  required inputMode="decimal" autoCorrect="off" autoComplete="off" />
               </div>
               <div>
                 <label className="text-sm font-medium text-zinc-300 mb-1 block">Açıklama (opsiyonel)</label>
