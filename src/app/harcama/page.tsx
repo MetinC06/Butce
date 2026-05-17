@@ -167,7 +167,7 @@ export default function HarcamaPage() {
               <div>
                 <label className="text-sm font-medium text-zinc-300 mb-1 block">Tarih</label>
                 <input type="date" value={date} onChange={e => setDate(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-zinc-700 bg-zinc-800 text-white focus:outline-none focus:ring-2 focus:ring-green-500 text-base" />
+                  className="w-full min-w-0 max-w-full px-4 py-3 rounded-xl border border-zinc-700 bg-zinc-800 text-white focus:outline-none focus:ring-2 focus:ring-green-500 text-base appearance-none" />
               </div>
               <div className="flex gap-3 pt-1">
                 <button type="button" onClick={() => { setShowForm(false); setShowNewCat(false) }} className="flex-1 py-3 rounded-xl border border-zinc-700 text-zinc-300 font-medium">İptal</button>
