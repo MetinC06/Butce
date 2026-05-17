@@ -8,7 +8,7 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
 import { Income, Expense, Saving } from '@/types/database'
 
 function formatEUR(amount: number) {
-  return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(amount)
+  return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount)
 }
 function getMonthName(year: number, month: number) {
   return new Date(year, month - 1).toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' })

@@ -7,7 +7,7 @@ import { Plus, Trash2, X, Pencil, Check } from 'lucide-react'
 import { Expense, ExpenseCategory } from '@/types/database'
 
 function formatEUR(amount: number) {
-  return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(amount)
+  return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount)
 }
 
 const ICONS = ['🛒','⛽','🏠','💡','🍽️','🏥','🚌','🎬','👕','📚','🚗','🏋️','✈️','🎁','💊','🐾','🔧','📱','☕','🍕','🎮','📦','💈','🏖️','🎵','🍼','🌿','🚿','🧹','💰','🏦','🎯','🛺','🛵','🅿️']

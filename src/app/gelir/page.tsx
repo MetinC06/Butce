@@ -7,7 +7,7 @@ import { Plus, Trash2 } from 'lucide-react'
 import { Income } from '@/types/database'
 
 function formatEUR(amount: number) {
-  return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(amount)
+  return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount)
 }
 
 export default function GelirPage() {
