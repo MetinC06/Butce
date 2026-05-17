@@ -66,8 +66,9 @@ export default function DashboardPage() {
   const prevMonth = () => { if (month === 1) { setYear(y => y - 1); setMonth(12) } else setMonth(m => m - 1) }
   const nextMonth = () => { if (month === 12) { setYear(y => y + 1); setMonth(1) } else setMonth(m => m + 1) }
 
+  const today = new Date().toISOString().split('T')[0]
   const totalIncome = incomes.reduce((s, i) => s + Number(i.amount), 0)
-  const totalExpense = expenses.reduce((s, e) => s + Number(e.amount), 0)
+  const totalExpense = expenses.filter(e => e.date <= today).reduce((s, e) => s + Number(e.amount), 0)
   const balance = totalIncome - totalExpense
 
   const myIncomes = incomes.filter(i => i.user_id === currentUserId)
@@ -78,7 +79,7 @@ export default function DashboardPage() {
   const tabIncomes = tab === 'tumu' ? incomes : tab === 'ben' ? myIncomes : spouseIncomes
   const tabExpenses = tab === 'tumu' ? expenses : tab === 'ben' ? myExpenses : spouseExpenses
   const tabIncome = tabIncomes.reduce((s, i) => s + Number(i.amount), 0)
-  const tabExpense = tabExpenses.reduce((s, e) => s + Number(e.amount), 0)
+  const tabExpense = tabExpenses.filter(e => e.date <= today).reduce((s, e) => s + Number(e.amount), 0)
 
   const categoryMap: Record<string, { name: string; icon: string; value: number }> = {}
   tabExpenses.forEach(exp => {
@@ -187,7 +188,6 @@ export default function DashboardPage() {
                     <div className="space-y-3">
                       {tabExpenses.slice(0, 5).map(e => {
                         const cat = e.expense_categories as { name: string; icon: string } | null
-                        const today = new Date().toISOString().split('T')[0]
                         const isPlanned = e.date > today
                         return (
                           <div key={e.id} className="flex items-center justify-between">

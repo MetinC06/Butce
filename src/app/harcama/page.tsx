@@ -80,7 +80,11 @@ export default function HarcamaPage() {
     setExpenses(prev => prev.filter(e => e.id !== id))
   }
 
-  const total = expenses.reduce((s, e) => s + Number(e.amount), 0)
+  const today = new Date().toISOString().split('T')[0]
+  const actualExpenses = expenses.filter(e => e.date <= today)
+  const plannedExpenses = expenses.filter(e => e.date > today)
+  const total = actualExpenses.reduce((s, e) => s + Number(e.amount), 0)
+  const plannedTotal = plannedExpenses.reduce((s, e) => s + Number(e.amount), 0)
 
   return (
     <div className="min-h-screen bg-zinc-950">
@@ -89,7 +93,10 @@ export default function HarcamaPage() {
         <div className="bg-red-600 rounded-2xl p-5 my-4 text-white">
           <p className="text-red-100 text-sm mb-1">Bu Ay Toplam Harcama</p>
           <p className="text-3xl font-bold">{formatEUR(total)}</p>
-          <p className="text-red-200 text-xs mt-1">{expenses.length} harcama kaydı</p>
+          <div className="flex items-center justify-between mt-1">
+            <p className="text-red-200 text-xs">{actualExpenses.length} harcama kaydı</p>
+            {plannedTotal > 0 && <p className="text-amber-300 text-xs">+ {formatEUR(plannedTotal)} planlandı</p>}
+          </div>
         </div>
 
         {showForm ? (
@@ -193,7 +200,6 @@ export default function HarcamaPage() {
             <div>
               {expenses.map((expense, i) => {
                 const cat = expense.expense_categories as { name: string; icon: string } | null
-                const today = new Date().toISOString().split('T')[0]
                 const isPlanned = expense.date > today
                 return (
                   <div key={expense.id} className={`flex items-center justify-between px-4 py-3.5 ${i < expenses.length - 1 ? 'border-b border-zinc-800' : ''} ${isPlanned ? 'bg-amber-950/30' : ''}`}>
