@@ -5,6 +5,8 @@ import BottomNav from '@/components/BottomNav'
 import Header from '@/components/Header'
 import { Plus, Pencil, Check, X, Trash2 } from 'lucide-react'
 import { Saving } from '@/types/database'
+import { SkeletonList } from '@/components/Skeleton'
+import CountUp from '@/components/CountUp'
 
 function formatEUR(amount: number) {
   return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount)
@@ -74,7 +76,7 @@ export default function TasarrufPage() {
       <main className="max-w-md mx-auto pt-14 pb-20 px-4">
         <div className="bg-blue-600 rounded-2xl p-5 my-4 text-white">
           <p className="text-blue-100 text-sm mb-1">Toplam Tasarruf</p>
-          <p className="text-3xl font-bold">{formatEUR(total)}</p>
+          <p className="text-3xl font-bold"><CountUp value={total} formatter={formatEUR} /></p>
           <p className="text-blue-200 text-xs mt-1">{savings.length} hesap</p>
         </div>
 
@@ -109,9 +111,13 @@ export default function TasarrufPage() {
             <h2 className="font-semibold text-white">Tasarruf Hesapları</h2>
           </div>
           {loading ? (
-            <div className="p-8 text-center text-zinc-500 text-sm">Yükleniyor...</div>
+            <SkeletonList count={2} />
           ) : savings.length === 0 ? (
-            <div className="p-8 text-center text-zinc-500 text-sm">Henüz hesap eklenmedi</div>
+            <div className="py-10 flex flex-col items-center gap-2">
+              <span className="text-4xl">🏦</span>
+              <p className="text-zinc-400 font-medium text-sm">Henüz hesap eklenmedi</p>
+              <p className="text-zinc-600 text-xs">Yukarıdaki butonu kullanarak hesap ekle</p>
+            </div>
           ) : (
             <div>
               {savings.map((sv, i) => (

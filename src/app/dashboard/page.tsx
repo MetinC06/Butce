@@ -3,6 +3,8 @@ import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import BottomNav from '@/components/BottomNav'
 import Header from '@/components/Header'
+import CountUp from '@/components/CountUp'
+import { SkeletonBalanceCard, SkeletonList } from '@/components/Skeleton'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Legend } from 'recharts'
 import { Income, Expense, Saving } from '@/types/database'
@@ -136,16 +138,24 @@ export default function DashboardPage() {
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center py-20 text-zinc-500">Yükleniyor...</div>
+          <>
+            <SkeletonBalanceCard />
+            <div className="bg-zinc-900 rounded-2xl border border-zinc-800 mb-3 overflow-hidden">
+              <div className="flex border-b border-zinc-800">
+                {[0,1,2].map(i => <div key={i} className="flex-1 py-3 flex justify-center"><div className="h-4 w-12 bg-zinc-800 animate-pulse rounded" /></div>)}
+              </div>
+              <div className="p-4"><SkeletonList count={3} /></div>
+            </div>
+          </>
         ) : (
           <>
             {/* Birleşik bakiye */}
             <div className={`rounded-2xl p-5 mb-3 ${balance >= 0 ? 'bg-green-600' : 'bg-red-600'}`}>
               <p className="text-green-100 text-sm font-medium mb-1">Toplam Bakiye (Aile)</p>
-              <p className="text-3xl font-bold text-white">{formatEUR(balance)}</p>
+              <p className="text-3xl font-bold text-white"><CountUp value={balance} formatter={formatEUR} /></p>
               <div className="flex gap-6 mt-3">
-                <div><p className="text-green-200 text-xs">Gelir</p><p className="text-white font-bold text-sm">{formatEUR(totalIncome)}</p></div>
-                <div><p className="text-green-200 text-xs">Gider</p><p className="text-white font-bold text-sm">{formatEUR(totalExpense)}</p></div>
+                <div><p className="text-green-200 text-xs">Gelir</p><p className="text-white font-bold text-sm"><CountUp value={totalIncome} formatter={formatEUR} /></p></div>
+                <div><p className="text-green-200 text-xs">Gider</p><p className="text-white font-bold text-sm"><CountUp value={totalExpense} formatter={formatEUR} /></p></div>
               </div>
             </div>
 
@@ -165,15 +175,15 @@ export default function DashboardPage() {
                     <p className="text-green-100 text-sm font-medium mb-1">
                       {tab === 'ben' ? myName : spouseName} · Anlık Bakiye
                     </p>
-                    <p className="text-3xl font-bold text-white">{formatEUR(tabIncome - tabExpense)}</p>
+                    <p className="text-3xl font-bold text-white"><CountUp value={tabIncome - tabExpense} formatter={formatEUR} /></p>
                     <div className="flex gap-6 mt-3">
                       <div>
                         <p className="text-green-200 text-xs">Gelir</p>
-                        <p className="text-white font-bold text-sm">{formatEUR(tabIncome)}</p>
+                        <p className="text-white font-bold text-sm"><CountUp value={tabIncome} formatter={formatEUR} /></p>
                       </div>
                       <div>
                         <p className="text-green-200 text-xs">Gider</p>
-                        <p className="text-white font-bold text-sm">{formatEUR(tabExpense)}</p>
+                        <p className="text-white font-bold text-sm"><CountUp value={tabExpense} formatter={formatEUR} /></p>
                       </div>
                     </div>
                   </div>

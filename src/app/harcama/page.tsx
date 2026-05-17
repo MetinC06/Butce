@@ -5,6 +5,8 @@ import BottomNav from '@/components/BottomNav'
 import Header from '@/components/Header'
 import { Plus, Trash2, X, Pencil, Check, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Expense, ExpenseCategory } from '@/types/database'
+import { SkeletonList } from '@/components/Skeleton'
+import CountUp from '@/components/CountUp'
 
 function formatEUR(amount: number) {
   return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount)
@@ -183,7 +185,7 @@ export default function HarcamaPage() {
         </div>
         <div className="bg-red-600 rounded-2xl p-5 mb-4 text-white">
           <p className="text-red-100 text-sm mb-1">Bu Ay Toplam Harcama (Aile)</p>
-          <p className="text-3xl font-bold">{formatEUR(allTotal)}</p>
+          <p className="text-3xl font-bold"><CountUp value={allTotal} formatter={formatEUR} /></p>
           <div className="flex gap-6 mt-3">
             <div><p className="text-red-200 text-xs">{myName}</p><p className="text-white font-bold text-sm">{formatEUR(myExpenses.filter(e => e.date <= today).reduce((s, e) => s + Number(e.amount), 0))}</p></div>
             <div><p className="text-red-200 text-xs">{spouseName}</p><p className="text-white font-bold text-sm">{formatEUR(spouseExpenses.filter(e => e.date <= today).reduce((s, e) => s + Number(e.amount), 0))}</p></div>
@@ -349,9 +351,13 @@ export default function HarcamaPage() {
             </div>
           )}
           {loading ? (
-            <div className="p-8 text-center text-zinc-500 text-sm">Yükleniyor...</div>
+            <SkeletonList count={4} />
           ) : tabExpenses.length === 0 ? (
-            <div className="p-8 text-center text-zinc-500 text-sm">Bu ay harcama kaydı yok</div>
+            <div className="py-10 flex flex-col items-center gap-2">
+              <span className="text-4xl">🛒</span>
+              <p className="text-zinc-400 font-medium text-sm">Bu ay harcama kaydı yok</p>
+              <p className="text-zinc-600 text-xs">Yukarıdaki butonu kullanarak harcama ekle</p>
+            </div>
           ) : (
             <div>
               {tabExpenses.map((expense, i) => {

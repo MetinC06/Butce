@@ -5,6 +5,8 @@ import BottomNav from '@/components/BottomNav'
 import Header from '@/components/Header'
 import { Plus, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Income } from '@/types/database'
+import { SkeletonList } from '@/components/Skeleton'
+import CountUp from '@/components/CountUp'
 
 function formatEUR(amount: number) {
   return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount)
@@ -97,7 +99,7 @@ export default function GelirPage() {
 
         <div className="bg-green-600 rounded-2xl p-5 mb-4 text-white">
           <p className="text-green-100 text-sm mb-1">Toplam Gelir (Aile)</p>
-          <p className="text-3xl font-bold">{formatEUR(total)}</p>
+          <p className="text-3xl font-bold"><CountUp value={total} formatter={formatEUR} /></p>
           <div className="flex gap-6 mt-3">
             <div><p className="text-green-200 text-xs">{myName}</p><p className="text-white font-bold text-sm">{formatEUR(myTotal)}</p></div>
             <div><p className="text-green-200 text-xs">{spouseName}</p><p className="text-white font-bold text-sm">{formatEUR(spouseTotal)}</p></div>
@@ -148,9 +150,13 @@ export default function GelirPage() {
             ))}
           </div>
           {loading ? (
-            <div className="p-8 text-center text-zinc-500 text-sm">Yükleniyor...</div>
+            <SkeletonList count={3} />
           ) : tabIncomes.length === 0 ? (
-            <div className="p-8 text-center text-zinc-500 text-sm">Bu ay gelir kaydı yok</div>
+            <div className="py-10 flex flex-col items-center gap-2">
+              <span className="text-4xl">💰</span>
+              <p className="text-zinc-400 font-medium text-sm">Bu ay gelir kaydı yok</p>
+              <p className="text-zinc-600 text-xs">Yukarıdaki butonu kullanarak gelir ekle</p>
+            </div>
           ) : (
             <div>
               {tabIncomes.map((income, i) => {
