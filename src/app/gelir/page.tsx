@@ -32,12 +32,14 @@ export default function GelirPage() {
 
   useEffect(() => { fetchIncomes() }, [])
 
+  const parseAmount = (val: string) => parseFloat(val.replace(',', '.')) || 0
+
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!amount) return
     setSaving(true)
     const { data: { user } } = await supabase.auth.getUser()
-    await supabase.from('incomes').insert({ user_id: user!.id, amount: parseFloat(amount), description: description || null, date })
+    await supabase.from('incomes').insert({ user_id: user!.id, amount: parseAmount(amount), description: description || null, date })
     setAmount(''); setDescription(''); setDate(new Date().toISOString().split('T')[0]); setShowForm(false); setSaving(false)
     fetchIncomes()
   }
@@ -65,7 +67,7 @@ export default function GelirPage() {
             <form onSubmit={handleAdd} className="space-y-3">
               <div>
                 <label className="text-sm font-medium text-zinc-300 mb-1 block">Tutar (€)</label>
-                <input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0"
+                <input type="text" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0"
                   className="w-full px-4 py-3 rounded-xl border border-zinc-700 bg-zinc-800 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-green-500 text-base"
                   required inputMode="decimal" />
               </div>

@@ -59,7 +59,7 @@ export default function HarcamaPage() {
     if (!amount || !categoryId) return
     setSaving(true)
     const { data: { user } } = await supabase.auth.getUser()
-    await supabase.from('expenses').insert({ user_id: user!.id, category_id: categoryId, amount: parseFloat(amount), description: description || null, date })
+    await supabase.from('expenses').insert({ user_id: user!.id, category_id: categoryId, amount: parseAmount(amount), description: description || null, date })
     setAmount(''); setDescription(''); setDate(new Date().toISOString().split('T')[0]); setShowForm(false); setSaving(false)
     fetchData()
   }
@@ -94,11 +94,13 @@ export default function HarcamaPage() {
     setEditDescription(expense.description || '')
   }
 
+  const parseAmount = (val: string) => parseFloat(val.replace(',', '.')) || 0
+
   const handleSaveEdit = async () => {
     if (!editId) return
     setEditSaving(true)
     await supabase.from('expenses').update({
-      amount: parseFloat(editAmount) || 0,
+      amount: parseAmount(editAmount),
       date: editDate,
       description: editDescription || null,
     }).eq('id', editId)
@@ -202,7 +204,7 @@ export default function HarcamaPage() {
 
               <div>
                 <label className="text-sm font-medium text-zinc-300 mb-1 block">Tutar (€)</label>
-                <input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0"
+                <input type="text" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0"
                   className="w-full px-4 py-3 rounded-xl border border-zinc-700 bg-zinc-800 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-green-500 text-base"
                   required inputMode="decimal" />
               </div>
@@ -273,7 +275,7 @@ export default function HarcamaPage() {
                         <div className="grid grid-cols-2 gap-2">
                           <div>
                             <label className="text-xs text-zinc-400 mb-1 block">Tutar (€)</label>
-                            <input type="number" value={editAmount} onChange={e => setEditAmount(e.target.value)}
+                            <input type="text" value={editAmount} onChange={e => setEditAmount(e.target.value)}
                               className="w-full px-3 py-2.5 rounded-xl border border-zinc-700 bg-zinc-800 text-white focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
                               inputMode="decimal" autoFocus />
                           </div>
