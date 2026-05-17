@@ -31,6 +31,12 @@ export default function HarcamaPage() {
   const [editDescription, setEditDescription] = useState('')
   const [editSaving, setEditSaving] = useState(false)
 
+  // Kişi sekmeleri
+  const [tab, setTab] = useState<'tumu' | 'ben' | 'esim'>('tumu')
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  const [myName, setMyName] = useState('Ben')
+  const [spouseName, setSpouseName] = useState('Eşim')
+
   // Transfer
   const [showTransfer, setShowTransfer] = useState(false)
   const [transferAmount, setTransferAmount] = useState('')
@@ -48,10 +54,16 @@ export default function HarcamaPage() {
   const end = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0]
 
   const fetchData = async () => {
-    const [{ data: exp }, { data: cats }] = await Promise.all([
+    const [{ data: { user } }, { data: exp }, { data: cats }] = await Promise.all([
+      supabase.auth.getUser(),
       supabase.from('expenses').select('*, expense_categories(name, icon, color)').gte('date', start).lte('date', end).order('date', { ascending: false }),
       supabase.from('expense_categories').select('*').order('name'),
     ])
+    setCurrentUserId(user?.id || null)
+    const email = user?.email || ''
+    const isMetin = email.toLowerCase() === 'metincanbek06@gmail.com'
+    setMyName(isMetin ? 'Metin' : 'Simge')
+    setSpouseName(isMetin ? 'Simge' : 'Metin')
     setExpenses(exp || [])
     setCategories(cats || [])
     if (cats && cats.length > 0 && !categoryId) setCategoryId(cats[0].id)
@@ -145,21 +157,25 @@ export default function HarcamaPage() {
   }
 
   const today = new Date().toISOString().split('T')[0]
-  const actualExpenses = expenses.filter(e => e.date <= today)
-  const plannedExpenses = expenses.filter(e => e.date > today)
+  const myExpenses = expenses.filter(e => e.user_id === currentUserId)
+  const spouseExpenses = expenses.filter(e => e.user_id !== currentUserId)
+  const tabExpenses = tab === 'tumu' ? expenses : tab === 'ben' ? myExpenses : spouseExpenses
+  const actualExpenses = tabExpenses.filter(e => e.date <= today)
+  const plannedExpenses = tabExpenses.filter(e => e.date > today)
   const total = actualExpenses.reduce((s, e) => s + Number(e.amount), 0)
   const plannedTotal = plannedExpenses.reduce((s, e) => s + Number(e.amount), 0)
+  const allTotal = expenses.filter(e => e.date <= today).reduce((s, e) => s + Number(e.amount), 0)
 
   return (
     <div className="min-h-screen bg-zinc-950">
       <Header title="Harcama" />
       <main className="max-w-md mx-auto pt-14 pb-20 px-4">
         <div className="bg-red-600 rounded-2xl p-5 my-4 text-white">
-          <p className="text-red-100 text-sm mb-1">Bu Ay Toplam Harcama</p>
-          <p className="text-3xl font-bold">{formatEUR(total)}</p>
-          <div className="flex items-center justify-between mt-1">
-            <p className="text-red-200 text-xs">{actualExpenses.length} harcama kaydı</p>
-            {plannedTotal > 0 && <p className="text-amber-300 text-xs">+ {formatEUR(plannedTotal)} planlandı</p>}
+          <p className="text-red-100 text-sm mb-1">Bu Ay Toplam Harcama (Aile)</p>
+          <p className="text-3xl font-bold">{formatEUR(allTotal)}</p>
+          <div className="flex gap-6 mt-3">
+            <div><p className="text-red-200 text-xs">{myName}</p><p className="text-white font-bold text-sm">{formatEUR(myExpenses.filter(e => e.date <= today).reduce((s, e) => s + Number(e.amount), 0))}</p></div>
+            <div><p className="text-red-200 text-xs">{spouseName}</p><p className="text-white font-bold text-sm">{formatEUR(spouseExpenses.filter(e => e.date <= today).reduce((s, e) => s + Number(e.amount), 0))}</p></div>
           </div>
         </div>
 
@@ -304,22 +320,36 @@ export default function HarcamaPage() {
         )}
 
         <div className="bg-zinc-900 rounded-2xl border border-zinc-800 overflow-hidden">
-          <div className="px-4 py-3 border-b border-zinc-800">
-            <h2 className="font-semibold text-white">Bu Ay Harcamalar</h2>
+          <div className="flex border-b border-zinc-800">
+            {(['tumu', 'ben', 'esim'] as const).map(t => (
+              <button key={t} onClick={() => setTab(t)}
+                className={`flex-1 py-3 text-sm font-semibold transition-colors ${tab === t ? 'text-red-400 border-b-2 border-red-400' : 'text-zinc-500'}`}>
+                {t === 'tumu' ? 'Tümü' : t === 'ben' ? myName : spouseName}
+              </button>
+            ))}
           </div>
+          {tab !== 'tumu' && (
+            <div className="px-4 py-2.5 border-b border-zinc-800 flex items-center justify-between">
+              <span className="text-xs text-zinc-500">{actualExpenses.length} harcama</span>
+              <div className="text-right">
+                <span className="text-sm font-bold text-red-400">{formatEUR(total)}</span>
+                {plannedTotal > 0 && <span className="text-xs text-amber-400 ml-2">+{formatEUR(plannedTotal)} planlandı</span>}
+              </div>
+            </div>
+          )}
           {loading ? (
             <div className="p-8 text-center text-zinc-500 text-sm">Yükleniyor...</div>
-          ) : expenses.length === 0 ? (
+          ) : tabExpenses.length === 0 ? (
             <div className="p-8 text-center text-zinc-500 text-sm">Bu ay harcama kaydı yok</div>
           ) : (
             <div>
-              {expenses.map((expense, i) => {
+              {tabExpenses.map((expense, i) => {
                 const cat = expense.expense_categories as { name: string; icon: string } | null
                 const isPlanned = expense.date > today
                 const isEditing = editId === expense.id
                 const isTransfer = expense.description === 'TRANSFER_OUT'
                 return (
-                  <div key={expense.id} className={`${i < expenses.length - 1 ? 'border-b border-zinc-800' : ''} ${isPlanned ? 'bg-amber-950/30' : ''} ${isTransfer ? 'bg-blue-950/20' : ''}`}>
+                  <div key={expense.id} className={`${i < tabExpenses.length - 1 ? 'border-b border-zinc-800' : ''} ${isPlanned ? 'bg-amber-950/30' : ''} ${isTransfer ? 'bg-blue-950/20' : ''}`}>
                     <div className="flex items-center justify-between px-4 py-3.5">
                       <button className="flex items-center gap-3 flex-1 text-left" onClick={() => !isTransfer && (isEditing ? setEditId(null) : openEdit(expense))}>
                         <span className="text-xl">{isTransfer ? '💸' : cat?.icon || '💸'}</span>
