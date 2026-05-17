@@ -187,19 +187,24 @@ export default function DashboardPage() {
                     <div className="space-y-3">
                       {tabExpenses.slice(0, 5).map(e => {
                         const cat = e.expense_categories as { name: string; icon: string } | null
+                        const today = new Date().toISOString().split('T')[0]
+                        const isPlanned = e.date > today
                         return (
                           <div key={e.id} className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                               <span className="text-lg">{cat?.icon || '💸'}</span>
                               <div>
-                                <p className="text-sm font-medium text-white">{cat?.name || 'Diğer'}</p>
+                                <div className="flex items-center gap-1.5">
+                                  <p className="text-sm font-medium text-white">{cat?.name || 'Diğer'}</p>
+                                  {isPlanned && <span className="text-xs bg-amber-500/20 text-amber-400 px-1 py-0.5 rounded font-medium">Planlandı</span>}
+                                </div>
                                 <p className="text-xs text-zinc-500">
                                   {new Date(e.date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}
                                   {e.description ? ` · ${e.description}` : ''}
                                 </p>
                               </div>
                             </div>
-                            <span className="text-sm font-semibold text-red-400">-{formatEUR(Number(e.amount))}</span>
+                            <span className={`text-sm font-semibold ${isPlanned ? 'text-amber-400' : 'text-red-400'}`}>-{formatEUR(Number(e.amount))}</span>
                           </div>
                         )
                       })}

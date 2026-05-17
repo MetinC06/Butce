@@ -193,12 +193,17 @@ export default function HarcamaPage() {
             <div>
               {expenses.map((expense, i) => {
                 const cat = expense.expense_categories as { name: string; icon: string } | null
+                const today = new Date().toISOString().split('T')[0]
+                const isPlanned = expense.date > today
                 return (
-                  <div key={expense.id} className={`flex items-center justify-between px-4 py-3.5 ${i < expenses.length - 1 ? 'border-b border-zinc-800' : ''}`}>
+                  <div key={expense.id} className={`flex items-center justify-between px-4 py-3.5 ${i < expenses.length - 1 ? 'border-b border-zinc-800' : ''} ${isPlanned ? 'bg-amber-950/30' : ''}`}>
                     <div className="flex items-center gap-3">
                       <span className="text-xl">{cat?.icon || '💸'}</span>
                       <div>
-                        <p className="font-medium text-white">{cat?.name || 'Diğer'}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-white">{cat?.name || 'Diğer'}</p>
+                          {isPlanned && <span className="text-xs bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded-md font-medium">Planlandı</span>}
+                        </div>
                         <p className="text-xs text-zinc-500">
                           {new Date(expense.date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}
                           {expense.description ? ` · ${expense.description}` : ''}
@@ -206,7 +211,7 @@ export default function HarcamaPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="font-bold text-red-400">-{formatEUR(Number(expense.amount))}</span>
+                      <span className={`font-bold ${isPlanned ? 'text-amber-400' : 'text-red-400'}`}>-{formatEUR(Number(expense.amount))}</span>
                       <button onClick={() => handleDelete(expense.id)} className="p-1.5 text-zinc-700 active:text-red-400"><Trash2 size={16} /></button>
                     </div>
                   </div>
