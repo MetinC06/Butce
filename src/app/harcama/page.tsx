@@ -1,9 +1,9 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import BottomNav from '@/components/BottomNav'
 import Header from '@/components/Header'
-import { Plus, Trash2, X, Pencil, Check } from 'lucide-react'
+import { Plus, Trash2, X, Pencil, Check, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Expense, ExpenseCategory } from '@/types/database'
 
 function formatEUR(amount: number) {
@@ -31,6 +31,11 @@ export default function HarcamaPage() {
   const [editDescription, setEditDescription] = useState('')
   const [editSaving, setEditSaving] = useState(false)
 
+  // Ay navigasyonu
+  const now = new Date()
+  const [year, setYear] = useState(now.getFullYear())
+  const [month, setMonth] = useState(now.getMonth() + 1)
+
   // Kişi sekmeleri
   const [tab, setTab] = useState<'tumu' | 'ben' | 'esim'>('tumu')
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
@@ -49,11 +54,9 @@ export default function HarcamaPage() {
   const [newCatIcon, setNewCatIcon] = useState('💰')
   const [savingCat, setSavingCat] = useState(false)
 
-  const now = new Date()
-  const start = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
-  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0]
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
+    const start = `${year}-${String(month).padStart(2, '0')}-01`
+    const end = new Date(year, month, 0).toISOString().split('T')[0]
     const [{ data: { user } }, { data: exp }, { data: cats }] = await Promise.all([
       supabase.auth.getUser(),
       supabase.from('expenses').select('*, expense_categories(name, icon, color)').gte('date', start).lte('date', end).order('date', { ascending: false }),
@@ -68,9 +71,12 @@ export default function HarcamaPage() {
     setCategories(cats || [])
     if (cats && cats.length > 0 && !categoryId) setCategoryId(cats[0].id)
     setLoading(false)
-  }
+  }, [year, month])
 
-  useEffect(() => { fetchData() }, [])
+  useEffect(() => { fetchData() }, [fetchData])
+
+  const prevMonth = () => { if (month === 1) { setYear(y => y - 1); setMonth(12) } else setMonth(m => m - 1) }
+  const nextMonth = () => { if (month === 12) { setYear(y => y + 1); setMonth(1) } else setMonth(m => m + 1) }
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -170,7 +176,12 @@ export default function HarcamaPage() {
     <div className="min-h-screen bg-zinc-950">
       <Header title="Harcama" />
       <main className="max-w-md mx-auto pt-14 pb-20 px-4">
-        <div className="bg-red-600 rounded-2xl p-5 my-4 text-white">
+        <div className="flex items-center justify-between py-4">
+          <button onClick={prevMonth} className="p-2 rounded-full active:bg-zinc-800"><ChevronLeft size={20} className="text-zinc-400" /></button>
+          <span className="font-semibold text-white capitalize">{new Date(year, month - 1).toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' })}</span>
+          <button onClick={nextMonth} className="p-2 rounded-full active:bg-zinc-800"><ChevronRight size={20} className="text-zinc-400" /></button>
+        </div>
+        <div className="bg-red-600 rounded-2xl p-5 mb-4 text-white">
           <p className="text-red-100 text-sm mb-1">Bu Ay Toplam Harcama (Aile)</p>
           <p className="text-3xl font-bold">{formatEUR(allTotal)}</p>
           <div className="flex gap-6 mt-3">

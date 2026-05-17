@@ -1,46 +1,66 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import BottomNav from '@/components/BottomNav'
 import Header from '@/components/Header'
-import { Plus, Trash2 } from 'lucide-react'
+import { Plus, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Income } from '@/types/database'
 
 function formatEUR(amount: number) {
   return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount)
 }
+function getMonthName(year: number, month: number) {
+  return new Date(year, month - 1).toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' })
+}
+function parseAmount(val: string) {
+  const cleaned = val.trim().replace(/[^\d,.-]/g, '')
+  const lastComma = cleaned.lastIndexOf(',')
+  const lastPeriod = cleaned.lastIndexOf('.')
+  const normalized = lastComma > lastPeriod
+    ? cleaned.replace(/\./g, '').replace(',', '.')
+    : cleaned.replace(/,/g, '')
+  return parseFloat(normalized) || 0
+}
 
 export default function GelirPage() {
   const supabase = createClient()
+  const now = new Date()
+  const [year, setYear] = useState(now.getFullYear())
+  const [month, setMonth] = useState(now.getMonth() + 1)
   const [incomes, setIncomes] = useState<Income[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [amount, setAmount] = useState('')
   const [description, setDescription] = useState('')
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0])
+  const [date, setDate] = useState(now.toISOString().split('T')[0])
 
-  const now = new Date()
-  const start = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
-  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0]
+  const [tab, setTab] = useState<'tumu' | 'ben' | 'esim'>('tumu')
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  const [myName, setMyName] = useState('Ben')
+  const [spouseName, setSpouseName] = useState('Eşim')
 
-  const fetchIncomes = async () => {
-    const { data } = await supabase.from('incomes').select('*').gte('date', start).lte('date', end).order('date', { ascending: false })
+  const fetchIncomes = useCallback(async () => {
+    setLoading(true)
+    const start = `${year}-${String(month).padStart(2, '0')}-01`
+    const end = new Date(year, month, 0).toISOString().split('T')[0]
+    const [{ data: { user } }, { data }] = await Promise.all([
+      supabase.auth.getUser(),
+      supabase.from('incomes').select('*').gte('date', start).lte('date', end).order('date', { ascending: false }),
+    ])
+    setCurrentUserId(user?.id || null)
+    const email = user?.email || ''
+    const isMetin = email.toLowerCase() === 'metincanbek06@gmail.com'
+    setMyName(isMetin ? 'Metin' : 'Simge')
+    setSpouseName(isMetin ? 'Simge' : 'Metin')
     setIncomes(data || [])
     setLoading(false)
-  }
+  }, [year, month])
 
-  useEffect(() => { fetchIncomes() }, [])
+  useEffect(() => { fetchIncomes() }, [fetchIncomes])
 
-  const parseAmount = (val: string) => {
-    const cleaned = val.trim().replace(/[^\d,.-]/g, '')
-    const lastComma = cleaned.lastIndexOf(',')
-    const lastPeriod = cleaned.lastIndexOf('.')
-    const normalized = lastComma > lastPeriod
-      ? cleaned.replace(/\./g, '').replace(',', '.')
-      : cleaned.replace(/,/g, '')
-    return parseFloat(normalized) || 0
-  }
+  const prevMonth = () => { if (month === 1) { setYear(y => y - 1); setMonth(12) } else setMonth(m => m - 1) }
+  const nextMonth = () => { if (month === 12) { setYear(y => y + 1); setMonth(1) } else setMonth(m => m + 1) }
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -57,16 +77,31 @@ export default function GelirPage() {
     setIncomes(prev => prev.filter(i => i.id !== id))
   }
 
+  const myIncomes = incomes.filter(i => i.user_id === currentUserId)
+  const spouseIncomes = incomes.filter(i => i.user_id !== currentUserId)
+  const tabIncomes = tab === 'tumu' ? incomes : tab === 'ben' ? myIncomes : spouseIncomes
   const total = incomes.reduce((s, i) => s + Number(i.amount), 0)
+  const myTotal = myIncomes.reduce((s, i) => s + Number(i.amount), 0)
+  const spouseTotal = spouseIncomes.reduce((s, i) => s + Number(i.amount), 0)
 
   return (
     <div className="min-h-screen bg-zinc-950">
       <Header title="Gelir" />
       <main className="max-w-md mx-auto pt-14 pb-20 px-4">
-        <div className="bg-green-600 rounded-2xl p-5 my-4 text-white">
-          <p className="text-green-100 text-sm mb-1">Bu Ay Toplam Gelir</p>
+
+        <div className="flex items-center justify-between py-4">
+          <button onClick={prevMonth} className="p-2 rounded-full active:bg-zinc-800"><ChevronLeft size={20} className="text-zinc-400" /></button>
+          <span className="font-semibold text-white capitalize">{getMonthName(year, month)}</span>
+          <button onClick={nextMonth} className="p-2 rounded-full active:bg-zinc-800"><ChevronRight size={20} className="text-zinc-400" /></button>
+        </div>
+
+        <div className="bg-green-600 rounded-2xl p-5 mb-4 text-white">
+          <p className="text-green-100 text-sm mb-1">Toplam Gelir (Aile)</p>
           <p className="text-3xl font-bold">{formatEUR(total)}</p>
-          <p className="text-green-200 text-xs mt-1">{incomes.length} gelir kaydı</p>
+          <div className="flex gap-6 mt-3">
+            <div><p className="text-green-200 text-xs">{myName}</p><p className="text-white font-bold text-sm">{formatEUR(myTotal)}</p></div>
+            <div><p className="text-green-200 text-xs">{spouseName}</p><p className="text-white font-bold text-sm">{formatEUR(spouseTotal)}</p></div>
+          </div>
         </div>
 
         {showForm ? (
@@ -104,36 +139,41 @@ export default function GelirPage() {
         )}
 
         <div className="bg-zinc-900 rounded-2xl border border-zinc-800 overflow-hidden">
-          <div className="px-4 py-3 border-b border-zinc-800">
-            <h2 className="font-semibold text-white">Bu Ay Gelirler</h2>
+          <div className="flex border-b border-zinc-800">
+            {(['tumu', 'ben', 'esim'] as const).map(t => (
+              <button key={t} onClick={() => setTab(t)}
+                className={`flex-1 py-3 text-sm font-semibold transition-colors ${tab === t ? 'text-green-400 border-b-2 border-green-400' : 'text-zinc-500'}`}>
+                {t === 'tumu' ? 'Tümü' : t === 'ben' ? myName : spouseName}
+              </button>
+            ))}
           </div>
           {loading ? (
             <div className="p-8 text-center text-zinc-500 text-sm">Yükleniyor...</div>
-          ) : incomes.length === 0 ? (
+          ) : tabIncomes.length === 0 ? (
             <div className="p-8 text-center text-zinc-500 text-sm">Bu ay gelir kaydı yok</div>
           ) : (
             <div>
-              {incomes.map((income, i) => {
+              {tabIncomes.map((income, i) => {
                 const isTransfer = income.description === 'TRANSFER_IN'
                 return (
-                <div key={income.id} className={`flex items-center justify-between px-4 py-3.5 ${i < incomes.length - 1 ? 'border-b border-zinc-800' : ''} ${isTransfer ? 'bg-blue-950/20' : ''}`}>
-                  <div className="flex items-center gap-3">
-                    {isTransfer && <span className="text-xl">💸</span>}
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium text-white">{isTransfer ? 'Eşimden Transfer' : income.description || 'Gelir'}</p>
-                        {isTransfer && <span className="text-xs bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded-md font-medium">Transfer</span>}
+                  <div key={income.id} className={`flex items-center justify-between px-4 py-3.5 ${i < tabIncomes.length - 1 ? 'border-b border-zinc-800' : ''} ${isTransfer ? 'bg-blue-950/20' : ''}`}>
+                    <div className="flex items-center gap-3">
+                      {isTransfer && <span className="text-xl">💸</span>}
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-white">{isTransfer ? 'Eşimden Transfer' : income.description || 'Gelir'}</p>
+                          {isTransfer && <span className="text-xs bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded-md font-medium">Transfer</span>}
+                        </div>
+                        <p className="text-xs text-zinc-500">{new Date(income.date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })}</p>
                       </div>
-                      <p className="text-xs text-zinc-500">{new Date(income.date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })}</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className={`font-bold ${isTransfer ? 'text-blue-400' : 'text-green-400'}`}>{formatEUR(Number(income.amount))}</span>
+                      <button onClick={() => handleDelete(income.id)} className="p-1.5 text-zinc-700 active:text-red-400"><Trash2 size={16} /></button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className={`font-bold ${isTransfer ? 'text-blue-400' : 'text-green-400'}`}>{formatEUR(Number(income.amount))}</span>
-                    <button onClick={() => handleDelete(income.id)} className="p-1.5 text-zinc-700 active:text-red-400"><Trash2 size={16} /></button>
-                  </div>
-                </div>
-                )}
-              )}
+                )
+              })}
             </div>
           )}
         </div>

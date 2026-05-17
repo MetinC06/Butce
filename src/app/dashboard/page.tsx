@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 import BottomNav from '@/components/BottomNav'
 import Header from '@/components/Header'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Legend } from 'recharts'
 import { Income, Expense, Saving } from '@/types/database'
 
 function formatEUR(amount: number) {
@@ -39,6 +39,8 @@ export default function DashboardPage() {
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [savings, setSavings] = useState<Saving[]>([])
   const [loading, setLoading] = useState(true)
+  const [trendData, setTrendData] = useState<Array<{ month: string; gelir: number; gider: number }>>([])
+
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [myName, setMyName] = useState('Ben')
   const [spouseName, setSpouseName] = useState('Eşim')
@@ -68,6 +70,31 @@ export default function DashboardPage() {
   }, [year, month])
 
   useEffect(() => { fetchData() }, [fetchData])
+
+  const fetchTrend = useCallback(async () => {
+    const months = Array.from({ length: 6 }, (_, i) => {
+      const d = new Date(year, month - 1 - (5 - i), 1)
+      return { year: d.getFullYear(), month: d.getMonth() + 1 }
+    })
+    const trendStart = `${months[0].year}-${String(months[0].month).padStart(2, '0')}-01`
+    const trendEnd = new Date(year, month, 0).toISOString().split('T')[0]
+    const [{ data: inc }, { data: exp }] = await Promise.all([
+      supabase.from('incomes').select('amount, date').gte('date', trendStart).lte('date', trendEnd),
+      supabase.from('expenses').select('amount, date').gte('date', trendStart).lte('date', trendEnd),
+    ])
+    const today = new Date().toISOString().split('T')[0]
+    const data = months.map(({ year: y, month: m }) => {
+      const mStart = `${y}-${String(m).padStart(2, '0')}-01`
+      const mEnd = new Date(y, m, 0).toISOString().split('T')[0]
+      const gelir = (inc || []).filter(i => i.date >= mStart && i.date <= mEnd).reduce((s, i) => s + Number(i.amount), 0)
+      const gider = (exp || []).filter(e => e.date >= mStart && e.date <= mEnd && e.date <= today).reduce((s, e) => s + Number(e.amount), 0)
+      const monthLabel = new Date(y, m - 1).toLocaleDateString('tr-TR', { month: 'short' })
+      return { month: monthLabel, gelir, gider }
+    })
+    setTrendData(data)
+  }, [year, month])
+
+  useEffect(() => { fetchTrend() }, [fetchTrend])
 
   const prevMonth = () => { if (month === 1) { setYear(y => y - 1); setMonth(12) } else setMonth(m => m - 1) }
   const nextMonth = () => { if (month === 12) { setYear(y => y + 1); setMonth(1) } else setMonth(m => m + 1) }
@@ -219,6 +246,27 @@ export default function DashboardPage() {
                 )}
               </div>
             </div>
+
+            {/* Aylık Trend */}
+            {trendData.some(d => d.gelir > 0 || d.gider > 0) && (
+              <div className="bg-zinc-900 rounded-2xl border border-zinc-800 p-4 mb-3">
+                <p className="font-semibold text-white mb-4">Son 6 Ay Trendi</p>
+                <ResponsiveContainer width="100%" height={180}>
+                  <BarChart data={trendData} barCategoryGap="25%">
+                    <XAxis dataKey="month" tick={{ fill: '#71717a', fontSize: 11 }} axisLine={false} tickLine={false} />
+                    <YAxis hide />
+                    <Tooltip
+                      contentStyle={{ backgroundColor: '#27272a', border: '1px solid #3f3f46', borderRadius: 12, fontSize: 12 }}
+                      labelStyle={{ color: '#fff', fontWeight: 600 }}
+                      formatter={(value, name) => [formatEUR(Number(value)), name === 'gelir' ? 'Gelir' : 'Gider']}
+                    />
+                    <Legend formatter={(v) => v === 'gelir' ? 'Gelir' : 'Gider'} wrapperStyle={{ fontSize: 12, color: '#a1a1aa' }} />
+                    <Bar dataKey="gelir" fill="#22c55e" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="gider" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
 
             {/* Tasarruflar */}
             <div className="bg-zinc-900 rounded-2xl border border-zinc-800 p-4 mb-3">
