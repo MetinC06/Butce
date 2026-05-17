@@ -180,19 +180,19 @@ export default function HarcamaPage() {
                     </button>
                   </div>
                 ) : (
-                  <div className="flex flex-wrap gap-2">
-                    {categories.map(cat => (
-                      <div key={cat.id} className={`flex items-center gap-1.5 pl-2.5 pr-1 py-1.5 rounded-xl border text-sm font-medium transition-colors ${categoryId === cat.id ? 'bg-green-900 border-green-600 text-white' : 'bg-zinc-800 border-zinc-700 text-zinc-300'}`}>
-                        <button type="button" onClick={() => setCategoryId(cat.id)} className="flex items-center gap-1.5">
-                          <span>{cat.icon}</span>
-                          <span>{cat.name}</span>
+                  <div className="rounded-xl border border-zinc-700 bg-zinc-800 overflow-hidden">
+                    {categories.map((cat, i) => (
+                      <div key={cat.id} className={`flex items-center justify-between px-3 py-2.5 ${i < categories.length - 1 ? 'border-b border-zinc-700' : ''} ${categoryId === cat.id ? 'bg-green-900/40' : ''}`}>
+                        <button type="button" onClick={() => setCategoryId(cat.id)} className="flex items-center gap-2 flex-1">
+                          <span className="text-lg">{cat.icon}</span>
+                          <span className={`text-sm font-medium ${categoryId === cat.id ? 'text-green-400' : 'text-zinc-300'}`}>{cat.name}</span>
                         </button>
                         <button type="button" onClick={async () => {
                           await supabase.from('expense_categories').delete().eq('id', cat.id)
                           setCategories(prev => prev.filter(c => c.id !== cat.id))
                           if (categoryId === cat.id) setCategoryId(categories.find(c => c.id !== cat.id)?.id || '')
-                        }} className="ml-0.5 p-0.5 rounded text-zinc-500 active:text-red-400">
-                          <X size={13} />
+                        }} className="p-1 text-zinc-600 active:text-red-400">
+                          <X size={14} />
                         </button>
                       </div>
                     ))}
