@@ -213,8 +213,10 @@ export default function HarcamaPage() {
               </div>
               <div>
                 <label className="text-sm font-medium text-zinc-300 mb-1 block">Tarih</label>
-                <input type="date" value={date} onChange={e => setDate(e.target.value)}
-                  className="w-full min-w-0 max-w-full px-4 py-3 rounded-xl border border-zinc-700 bg-zinc-800 text-white focus:outline-none focus:ring-2 focus:ring-green-500 text-base appearance-none" />
+                <div className="overflow-hidden rounded-xl">
+                  <input type="date" value={date} onChange={e => setDate(e.target.value)}
+                    className="w-full min-w-0 max-w-full px-4 py-3 border border-zinc-700 bg-zinc-800 text-white focus:outline-none focus:ring-2 focus:ring-green-500 text-base rounded-xl" />
+                </div>
               </div>
               <div className="flex gap-3 pt-1">
                 <button type="button" onClick={() => { setShowForm(false); setShowNewCat(false) }} className="flex-1 py-3 rounded-xl border border-zinc-700 text-zinc-300 font-medium">İptal</button>
@@ -278,7 +280,7 @@ export default function HarcamaPage() {
                           <div>
                             <label className="text-xs text-zinc-400 mb-1 block">Tarih</label>
                             <input type="date" value={editDate} onChange={e => setEditDate(e.target.value)}
-                              className="w-full min-w-0 max-w-full px-3 py-2.5 rounded-xl border border-zinc-700 bg-zinc-800 text-white focus:outline-none focus:ring-2 focus:ring-red-500 text-sm appearance-none" />
+                              className="w-full min-w-0 max-w-full px-3 py-2.5 rounded-xl border border-zinc-700 bg-zinc-800 text-white focus:outline-none focus:ring-2 focus:ring-red-500 text-sm" />
                           </div>
                         </div>
                         <div>
