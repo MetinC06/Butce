@@ -31,6 +31,12 @@ export default function HarcamaPage() {
   const [editDescription, setEditDescription] = useState('')
   const [editSaving, setEditSaving] = useState(false)
 
+  // Transfer
+  const [showTransfer, setShowTransfer] = useState(false)
+  const [transferAmount, setTransferAmount] = useState('')
+  const [transferDate, setTransferDate] = useState(new Date().toISOString().split('T')[0])
+  const [transferSaving, setTransferSaving] = useState(false)
+
   // Yeni kategori mini formu
   const [showNewCat, setShowNewCat] = useState(false)
   const [newCatName, setNewCatName] = useState('')
@@ -87,6 +93,27 @@ export default function HarcamaPage() {
     setExpenses(prev => prev.filter(e => e.id !== id))
   }
 
+  const handleTransfer = async () => {
+    if (!transferAmount) return
+    setTransferSaving(true)
+    const { data: { user } } = await supabase.auth.getUser()
+
+    // Diğer kullanıcıyı bul
+    const { data: otherExp } = await supabase.from('expenses').select('user_id').neq('user_id', user!.id).limit(1).single()
+    const { data: otherInc } = await supabase.from('incomes').select('user_id').neq('user_id', user!.id).limit(1).single()
+    const otherId = otherExp?.user_id || otherInc?.user_id
+
+    if (!otherId) { setTransferSaving(false); return }
+
+    const amt = parseAmount(transferAmount)
+    await Promise.all([
+      supabase.from('expenses').insert({ user_id: user!.id, category_id: null, amount: amt, description: 'TRANSFER_OUT', date: transferDate }),
+      supabase.from('incomes').insert({ user_id: otherId, amount: amt, description: 'TRANSFER_IN', date: transferDate }),
+    ])
+    setTransferAmount(''); setTransferDate(new Date().toISOString().split('T')[0]); setShowTransfer(false); setTransferSaving(false)
+    fetchData()
+  }
+
   const openEdit = (expense: Expense) => {
     setEditId(expense.id)
     setEditAmount(String(expense.amount))
@@ -136,7 +163,47 @@ export default function HarcamaPage() {
           </div>
         </div>
 
-        {showForm ? (
+        {!showForm && !showTransfer && (
+          <div className="flex gap-2 mb-4">
+            <button onClick={() => setShowForm(true)} className="flex-1 py-3.5 bg-red-600 text-white font-semibold rounded-xl flex items-center justify-center gap-2">
+              <Plus size={20} /> Harcama Ekle
+            </button>
+            <button onClick={() => setShowTransfer(true)} className="flex-1 py-3.5 bg-blue-600 text-white font-semibold rounded-xl flex items-center justify-center gap-2">
+              💸 Transfer
+            </button>
+          </div>
+        )}
+
+        {showTransfer && (
+          <div className="bg-zinc-900 rounded-2xl border border-zinc-800 p-4 mb-4">
+            <h2 className="font-semibold text-white mb-1">Eşine Transfer</h2>
+            <p className="text-xs text-zinc-500 mb-4">Senin hesabından düşülür, eşinin hesabına eklenir</p>
+            <div className="space-y-3">
+              <div>
+                <label className="text-sm font-medium text-zinc-300 mb-1 block">Tutar (€)</label>
+                <input type="text" value={transferAmount} onChange={e => setTransferAmount(e.target.value)} placeholder="0"
+                  className="w-full px-4 py-3 rounded-xl border border-zinc-700 bg-zinc-800 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-base"
+                  inputMode="decimal" autoCorrect="off" autoComplete="off" autoFocus />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-zinc-300 mb-1 block">Tarih</label>
+                <div className="overflow-hidden rounded-xl">
+                  <input type="date" value={transferDate} onChange={e => setTransferDate(e.target.value)}
+                    className="w-full min-w-0 max-w-full px-4 py-3 border border-zinc-700 bg-zinc-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-base rounded-xl" />
+                </div>
+              </div>
+              <div className="flex gap-3 pt-1">
+                <button type="button" onClick={() => setShowTransfer(false)} className="flex-1 py-3 rounded-xl border border-zinc-700 text-zinc-300 font-medium">İptal</button>
+                <button onClick={handleTransfer} disabled={transferSaving || !transferAmount}
+                  className="flex-1 py-3 bg-blue-600 text-white font-semibold rounded-xl disabled:opacity-50">
+                  {transferSaving ? 'Gönderiliyor...' : 'Gönder'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showForm && (
           <div className="bg-zinc-900 rounded-2xl border border-zinc-800 p-4 mb-4">
             <h2 className="font-semibold text-white mb-4">Harcama Ekle</h2>
             <form onSubmit={handleAdd} className="space-y-3">
@@ -234,10 +301,6 @@ export default function HarcamaPage() {
               </div>
             </form>
           </div>
-        ) : (
-          <button onClick={() => setShowForm(true)} className="w-full py-3.5 bg-red-600 text-white font-semibold rounded-xl flex items-center justify-center gap-2 mb-4">
-            <Plus size={20} /> Harcama Ekle
-          </button>
         )}
 
         <div className="bg-zinc-900 rounded-2xl border border-zinc-800 overflow-hidden">
@@ -254,27 +317,32 @@ export default function HarcamaPage() {
                 const cat = expense.expense_categories as { name: string; icon: string } | null
                 const isPlanned = expense.date > today
                 const isEditing = editId === expense.id
+                const isTransfer = expense.description === 'TRANSFER_OUT'
                 return (
-                  <div key={expense.id} className={`${i < expenses.length - 1 ? 'border-b border-zinc-800' : ''} ${isPlanned ? 'bg-amber-950/30' : ''}`}>
+                  <div key={expense.id} className={`${i < expenses.length - 1 ? 'border-b border-zinc-800' : ''} ${isPlanned ? 'bg-amber-950/30' : ''} ${isTransfer ? 'bg-blue-950/20' : ''}`}>
                     <div className="flex items-center justify-between px-4 py-3.5">
-                      <button className="flex items-center gap-3 flex-1 text-left" onClick={() => isEditing ? setEditId(null) : openEdit(expense)}>
-                        <span className="text-xl">{cat?.icon || '💸'}</span>
+                      <button className="flex items-center gap-3 flex-1 text-left" onClick={() => !isTransfer && (isEditing ? setEditId(null) : openEdit(expense))}>
+                        <span className="text-xl">{isTransfer ? '💸' : cat?.icon || '💸'}</span>
                         <div>
                           <div className="flex items-center gap-2">
-                            <p className="font-medium text-white">{cat?.name || 'Diğer'}</p>
-                            {isPlanned && <span className="text-xs bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded-md font-medium">Planlandı</span>}
+                            <p className="font-medium text-white">{isTransfer ? 'Eşime Transfer' : cat?.name || 'Diğer'}</p>
+                            {isPlanned && !isTransfer && <span className="text-xs bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded-md font-medium">Planlandı</span>}
+                            {isTransfer && <span className="text-xs bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded-md font-medium">Transfer</span>}
                           </div>
                           <p className="text-xs text-zinc-500">
                             {new Date(expense.date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}
-                            {expense.description ? ` · ${expense.description}` : ''}
                           </p>
                         </div>
                       </button>
                       <div className="flex items-center gap-2">
-                        <span className={`font-bold ${isPlanned ? 'text-amber-400' : 'text-red-400'}`}>-{formatEUR(Number(expense.amount))}</span>
-                        <button onClick={() => isEditing ? setEditId(null) : openEdit(expense)} className={`p-1.5 ${isEditing ? 'text-zinc-400' : 'text-zinc-700 active:text-zinc-400'}`}>
-                          {isEditing ? <X size={16} /> : <Pencil size={15} />}
-                        </button>
+                        <span className={`font-bold ${isTransfer ? 'text-blue-400' : isPlanned ? 'text-amber-400' : 'text-red-400'}`}>-{formatEUR(Number(expense.amount))}</span>
+                        {isTransfer ? (
+                          <button onClick={() => handleDelete(expense.id)} className="p-1.5 text-zinc-700 active:text-red-400"><Trash2 size={15} /></button>
+                        ) : (
+                          <button onClick={() => isEditing ? setEditId(null) : openEdit(expense)} className={`p-1.5 ${isEditing ? 'text-zinc-400' : 'text-zinc-700 active:text-zinc-400'}`}>
+                            {isEditing ? <X size={16} /> : <Pencil size={15} />}
+                          </button>
+                        )}
                       </div>
                     </div>
 

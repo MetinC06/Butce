@@ -113,18 +113,27 @@ export default function GelirPage() {
             <div className="p-8 text-center text-zinc-500 text-sm">Bu ay gelir kaydı yok</div>
           ) : (
             <div>
-              {incomes.map((income, i) => (
-                <div key={income.id} className={`flex items-center justify-between px-4 py-3.5 ${i < incomes.length - 1 ? 'border-b border-zinc-800' : ''}`}>
-                  <div>
-                    <p className="font-medium text-white">{income.description || 'Gelir'}</p>
-                    <p className="text-xs text-zinc-500">{new Date(income.date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })}</p>
+              {incomes.map((income, i) => {
+                const isTransfer = income.description === 'TRANSFER_IN'
+                return (
+                <div key={income.id} className={`flex items-center justify-between px-4 py-3.5 ${i < incomes.length - 1 ? 'border-b border-zinc-800' : ''} ${isTransfer ? 'bg-blue-950/20' : ''}`}>
+                  <div className="flex items-center gap-3">
+                    {isTransfer && <span className="text-xl">💸</span>}
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-white">{isTransfer ? 'Eşimden Transfer' : income.description || 'Gelir'}</p>
+                        {isTransfer && <span className="text-xs bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded-md font-medium">Transfer</span>}
+                      </div>
+                      <p className="text-xs text-zinc-500">{new Date(income.date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })}</p>
+                    </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="font-bold text-green-400">{formatEUR(Number(income.amount))}</span>
+                    <span className={`font-bold ${isTransfer ? 'text-blue-400' : 'text-green-400'}`}>{formatEUR(Number(income.amount))}</span>
                     <button onClick={() => handleDelete(income.id)} className="p-1.5 text-zinc-700 active:text-red-400"><Trash2 size={16} /></button>
                   </div>
                 </div>
-              ))}
+                )}
+              )}
             </div>
           )}
         </div>
