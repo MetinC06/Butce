@@ -49,6 +49,10 @@ export default function DashboardPage() {
   const [tab, setTab] = useState<Tab>('tumu')
   const [carryover, setCarryover] = useState(0)
   const [nextMonthReserved, setNextMonthReserved] = useState(0)
+  const [myCarryover, setMyCarryover] = useState(0)
+  const [spouseCarryover, setSpouseCarryover] = useState(0)
+  const [myNextReserved, setMyNextReserved] = useState(0)
+  const [spouseNextReserved, setSpouseNextReserved] = useState(0)
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -73,9 +77,9 @@ export default function DashboardPage() {
       supabase.from('incomes').select('*').gte('date', start).lte('date', end).order('date', { ascending: false }),
       supabase.from('expenses').select('*, expense_categories(name, icon, color)').gte('date', start).lte('date', end).order('date', { ascending: false }),
       supabase.from('savings').select('*').order('name'),
-      supabase.from('incomes').select('amount').lte('date', prevMonthEnd),
-      supabase.from('expenses').select('amount').lte('date', prevMonthEnd),
-      supabase.from('expenses').select('amount').eq('date', nextMonthFirst),
+      supabase.from('incomes').select('amount, user_id').lte('date', prevMonthEnd),
+      supabase.from('expenses').select('amount, user_id').lte('date', prevMonthEnd),
+      supabase.from('expenses').select('amount, user_id').eq('date', nextMonthFirst),
     ])
 
     const carryoverVal =
@@ -83,6 +87,18 @@ export default function DashboardPage() {
       (prevExp || []).reduce((s, e) => s + Number(e.amount), 0)
     setCarryover(carryoverVal)
     setNextMonthReserved((nextRes || []).reduce((s, e) => s + Number(e.amount), 0))
+
+    const myId = user?.id
+    setMyCarryover(
+      (prevInc || []).filter(i => i.user_id === myId).reduce((s, i) => s + Number(i.amount), 0) -
+      (prevExp || []).filter(e => e.user_id === myId).reduce((s, e) => s + Number(e.amount), 0)
+    )
+    setSpouseCarryover(
+      (prevInc || []).filter(i => i.user_id !== myId).reduce((s, i) => s + Number(i.amount), 0) -
+      (prevExp || []).filter(e => e.user_id !== myId).reduce((s, e) => s + Number(e.amount), 0)
+    )
+    setMyNextReserved((nextRes || []).filter(e => e.user_id === myId).reduce((s, e) => s + Number(e.amount), 0))
+    setSpouseNextReserved((nextRes || []).filter(e => e.user_id !== myId).reduce((s, e) => s + Number(e.amount), 0))
 
     setCurrentUserId(user?.id || null)
     const email = user?.email || user?.user_metadata?.email || ''
@@ -140,6 +156,10 @@ export default function DashboardPage() {
   const tabExpenses = tab === 'tumu' ? expenses : tab === 'ben' ? myExpenses : spouseExpenses
   const tabIncome = tabIncomes.reduce((s, i) => s + Number(i.amount), 0)
   const tabExpense = tabExpenses.filter(e => e.date <= today).reduce((s, e) => s + Number(e.amount), 0)
+  const tabCarryover = tab === 'ben' ? myCarryover : tab === 'esim' ? spouseCarryover : carryover
+  const tabNextReserved = tab === 'ben' ? myNextReserved : tab === 'esim' ? spouseNextReserved : nextMonthReserved
+  const tabBalance = tabCarryover + tabIncome - tabExpense
+  const tabAvailable = tabBalance - tabNextReserved
 
   const categoryMap: Record<string, { name: string; icon: string; value: number }> = {}
   tabExpenses.forEach(exp => {
@@ -217,12 +237,18 @@ export default function DashboardPage() {
               </div>
               <div className="p-4">
                 {tab !== 'tumu' ? (
-                  <div className={`rounded-2xl p-4 mb-4 ${tabIncome - tabExpense >= 0 ? 'bg-green-600' : 'bg-red-600'}`}>
+                  <div className={`rounded-2xl p-4 mb-4 ${tabAvailable >= 0 ? 'bg-green-600' : 'bg-red-600'}`}>
                     <p className="text-green-100 text-sm font-medium mb-1">
-                      {tab === 'ben' ? myName : spouseName} · Anlık Bakiye
+                      {tab === 'ben' ? myName : spouseName} · {tabNextReserved > 0 ? 'Kullanılabilir Bakiye' : 'Anlık Bakiye'}
                     </p>
-                    <p className="text-3xl font-bold text-white"><CountUp value={tabIncome - tabExpense} formatter={formatEUR} /></p>
-                    <div className="flex gap-6 mt-3">
+                    <p className="text-3xl font-bold text-white"><CountUp value={tabAvailable} formatter={formatEUR} /></p>
+                    <div className="flex flex-wrap gap-4 mt-3">
+                      {tabCarryover !== 0 && (
+                        <div>
+                          <p className="text-green-200 text-xs">Devir</p>
+                          <p className="text-white font-bold text-sm">{formatEUR(tabCarryover)}</p>
+                        </div>
+                      )}
                       <div>
                         <p className="text-green-200 text-xs">Gelir</p>
                         <p className="text-white font-bold text-sm"><CountUp value={tabIncome} formatter={formatEUR} /></p>
@@ -231,7 +257,18 @@ export default function DashboardPage() {
                         <p className="text-green-200 text-xs">Gider</p>
                         <p className="text-white font-bold text-sm"><CountUp value={tabExpense} formatter={formatEUR} /></p>
                       </div>
+                      {tabNextReserved > 0 && (
+                        <div>
+                          <p className="text-amber-200 text-xs">Ayrılan</p>
+                          <p className="text-amber-200 font-bold text-sm">-{formatEUR(tabNextReserved)}</p>
+                        </div>
+                      )}
                     </div>
+                    {tabNextReserved > 0 && (
+                      <p className="text-green-100/60 text-xs mt-2">
+                        Gelecek ay için {formatEUR(tabNextReserved)} ayrıldı
+                      </p>
+                    )}
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 gap-3 mb-4">
