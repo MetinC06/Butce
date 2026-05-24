@@ -1,6 +1,7 @@
 'use client'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
+import { useEffect } from 'react'
 import { Home, TrendingUp, ShoppingCart, PiggyBank, BarChart2 } from 'lucide-react'
 
 const tabs = [
@@ -13,6 +14,34 @@ const tabs = [
 
 export default function BottomNav() {
   const pathname = usePathname()
+  const router = useRouter()
+
+  useEffect(() => {
+    let startX = 0
+    let startY = 0
+
+    const onTouchStart = (e: TouchEvent) => {
+      startX = e.touches[0].clientX
+      startY = e.touches[0].clientY
+    }
+
+    const onTouchEnd = (e: TouchEvent) => {
+      const dx = e.changedTouches[0].clientX - startX
+      const dy = e.changedTouches[0].clientY - startY
+      if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy)) return
+      const currentIndex = tabs.findIndex(t => t.href === pathname)
+      if (currentIndex === -1) return
+      if (dx < 0 && currentIndex < tabs.length - 1) router.push(tabs[currentIndex + 1].href)
+      else if (dx > 0 && currentIndex > 0) router.push(tabs[currentIndex - 1].href)
+    }
+
+    document.addEventListener('touchstart', onTouchStart, { passive: true })
+    document.addEventListener('touchend', onTouchEnd, { passive: true })
+    return () => {
+      document.removeEventListener('touchstart', onTouchStart)
+      document.removeEventListener('touchend', onTouchEnd)
+    }
+  }, [pathname, router])
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-zinc-900/95 backdrop-blur border-t border-zinc-800 z-50">
