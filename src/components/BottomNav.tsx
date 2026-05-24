@@ -1,7 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { Home, TrendingUp, ShoppingCart, PiggyBank, BarChart2 } from 'lucide-react'
 
 const tabs = [
@@ -15,6 +15,10 @@ const tabs = [
 export default function BottomNav() {
   const pathname = usePathname()
   const router = useRouter()
+  const pathnameRef = useRef(pathname)
+  const navigatingRef = useRef(false)
+
+  useEffect(() => { pathnameRef.current = pathname }, [pathname])
 
   useEffect(() => {
     let startX = 0
@@ -26,13 +30,21 @@ export default function BottomNav() {
     }
 
     const onTouchEnd = (e: TouchEvent) => {
+      if (navigatingRef.current) return
       const dx = e.changedTouches[0].clientX - startX
       const dy = e.changedTouches[0].clientY - startY
       if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy)) return
-      const currentIndex = tabs.findIndex(t => t.href === pathname)
+      const currentIndex = tabs.findIndex(t => t.href === pathnameRef.current)
       if (currentIndex === -1) return
-      if (dx < 0 && currentIndex < tabs.length - 1) router.push(tabs[currentIndex + 1].href)
-      else if (dx > 0 && currentIndex > 0) router.push(tabs[currentIndex - 1].href)
+      if (dx < 0 && currentIndex < tabs.length - 1) {
+        navigatingRef.current = true
+        router.push(tabs[currentIndex + 1].href)
+        setTimeout(() => { navigatingRef.current = false }, 600)
+      } else if (dx > 0 && currentIndex > 0) {
+        navigatingRef.current = true
+        router.push(tabs[currentIndex - 1].href)
+        setTimeout(() => { navigatingRef.current = false }, 600)
+      }
     }
 
     document.addEventListener('touchstart', onTouchStart, { passive: true })
@@ -41,7 +53,7 @@ export default function BottomNav() {
       document.removeEventListener('touchstart', onTouchStart)
       document.removeEventListener('touchend', onTouchEnd)
     }
-  }, [pathname, router])
+  }, [router])
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-zinc-900/95 backdrop-blur border-t border-zinc-800 z-50">
