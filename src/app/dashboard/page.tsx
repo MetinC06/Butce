@@ -47,18 +47,42 @@ export default function DashboardPage() {
   const [myName, setMyName] = useState('Ben')
   const [spouseName, setSpouseName] = useState('Eşim')
   const [tab, setTab] = useState<Tab>('tumu')
+  const [carryover, setCarryover] = useState(0)
+  const [nextMonthReserved, setNextMonthReserved] = useState(0)
 
   const fetchData = useCallback(async () => {
     setLoading(true)
     const start = `${year}-${String(month).padStart(2, '0')}-01`
     const end = new Date(year, month, 0).toISOString().split('T')[0]
 
-    const [{ data: { user } }, { data: inc }, { data: exp }, { data: sav }] = await Promise.all([
+    const prevMonthEnd = new Date(year, month - 1, 0).toISOString().split('T')[0]
+    const nextM = month === 12 ? 1 : month + 1
+    const nextY = month === 12 ? year + 1 : year
+    const nextMonthFirst = `${nextY}-${String(nextM).padStart(2, '0')}-01`
+
+    const [
+      { data: { user } },
+      { data: inc },
+      { data: exp },
+      { data: sav },
+      { data: prevInc },
+      { data: prevExp },
+      { data: nextRes },
+    ] = await Promise.all([
       supabase.auth.getUser(),
       supabase.from('incomes').select('*').gte('date', start).lte('date', end).order('date', { ascending: false }),
       supabase.from('expenses').select('*, expense_categories(name, icon, color)').gte('date', start).lte('date', end).order('date', { ascending: false }),
       supabase.from('savings').select('*').order('name'),
+      supabase.from('incomes').select('amount').lte('date', prevMonthEnd),
+      supabase.from('expenses').select('amount').lte('date', prevMonthEnd),
+      supabase.from('expenses').select('amount').eq('date', nextMonthFirst),
     ])
+
+    const carryoverVal =
+      (prevInc || []).reduce((s, i) => s + Number(i.amount), 0) -
+      (prevExp || []).reduce((s, e) => s + Number(e.amount), 0)
+    setCarryover(carryoverVal)
+    setNextMonthReserved((nextRes || []).reduce((s, e) => s + Number(e.amount), 0))
 
     setCurrentUserId(user?.id || null)
     const email = user?.email || user?.user_metadata?.email || ''
@@ -104,7 +128,8 @@ export default function DashboardPage() {
   const today = new Date().toISOString().split('T')[0]
   const totalIncome = incomes.reduce((s, i) => s + Number(i.amount), 0)
   const totalExpense = expenses.filter(e => e.date <= today).reduce((s, e) => s + Number(e.amount), 0)
-  const balance = totalIncome - totalExpense
+  const balance = carryover + totalIncome - totalExpense
+  const available = balance - nextMonthReserved
 
   const myIncomes = incomes.filter(i => i.user_id === currentUserId)
   const myExpenses = expenses.filter(e => e.user_id === currentUserId)
@@ -150,13 +175,34 @@ export default function DashboardPage() {
         ) : (
           <>
             {/* Birleşik bakiye */}
-            <div className={`rounded-2xl p-5 mb-3 ${balance >= 0 ? 'bg-green-600' : 'bg-red-600'}`}>
-              <p className="text-green-100 text-sm font-medium mb-1">Toplam Bakiye (Aile)</p>
-              <p className="text-3xl font-bold text-white"><CountUp value={balance} formatter={formatEUR} /></p>
-              <div className="flex gap-6 mt-3">
+            <div className={`rounded-2xl p-5 mb-3 ${available >= 0 ? 'bg-green-600' : 'bg-red-600'}`}>
+              <p className="text-green-100 text-sm font-medium mb-1">
+                {nextMonthReserved > 0 ? 'Kullanılabilir Bakiye (Aile)' : 'Toplam Bakiye (Aile)'}
+              </p>
+              <p className="text-3xl font-bold text-white">
+                <CountUp value={available} formatter={formatEUR} />
+              </p>
+              <div className="flex flex-wrap gap-4 mt-3">
+                {carryover !== 0 && (
+                  <div>
+                    <p className="text-green-200 text-xs">Devir</p>
+                    <p className="text-white font-bold text-sm">{formatEUR(carryover)}</p>
+                  </div>
+                )}
                 <div><p className="text-green-200 text-xs">Gelir</p><p className="text-white font-bold text-sm"><CountUp value={totalIncome} formatter={formatEUR} /></p></div>
                 <div><p className="text-green-200 text-xs">Gider</p><p className="text-white font-bold text-sm"><CountUp value={totalExpense} formatter={formatEUR} /></p></div>
+                {nextMonthReserved > 0 && (
+                  <div>
+                    <p className="text-amber-200 text-xs">Ayrılan</p>
+                    <p className="text-amber-200 font-bold text-sm">-{formatEUR(nextMonthReserved)}</p>
+                  </div>
+                )}
               </div>
+              {nextMonthReserved > 0 && (
+                <p className="text-green-100/60 text-xs mt-2">
+                  Gelecek ay için {formatEUR(nextMonthReserved)} ayrıldı
+                </p>
+              )}
             </div>
 
             {/* Ben / Eşim sekmeleri */}

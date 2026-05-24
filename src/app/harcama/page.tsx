@@ -87,8 +87,15 @@ export default function HarcamaPage() {
     setSaving(true)
     const { data: { user } } = await supabase.auth.getUser()
     await supabase.from('expenses').insert({ user_id: user!.id, category_id: categoryId, amount: parseAmount(amount), description: description || null, date })
+    const expYear = parseInt(date.split('-')[0])
+    const expMonth = parseInt(date.split('-')[1])
     setAmount(''); setDescription(''); setDate(new Date().toISOString().split('T')[0]); setShowForm(false); setSaving(false); setCategoryCollapsed(false)
-    fetchData()
+    if (expYear !== year || expMonth !== month) {
+      setYear(expYear)
+      setMonth(expMonth)
+    } else {
+      fetchData()
+    }
   }
 
   const handleAddCategory = async () => {
