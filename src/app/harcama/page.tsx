@@ -55,6 +55,7 @@ export default function HarcamaPage() {
   const [newCatName, setNewCatName] = useState('')
   const [newCatIcon, setNewCatIcon] = useState('💰')
   const [savingCat, setSavingCat] = useState(false)
+  const [categoryCollapsed, setCategoryCollapsed] = useState(false)
 
   const fetchData = useCallback(async () => {
     const start = `${year}-${String(month).padStart(2, '0')}-01`
@@ -86,7 +87,7 @@ export default function HarcamaPage() {
     setSaving(true)
     const { data: { user } } = await supabase.auth.getUser()
     await supabase.from('expenses').insert({ user_id: user!.id, category_id: categoryId, amount: parseAmount(amount), description: description || null, date })
-    setAmount(''); setDescription(''); setDate(new Date().toISOString().split('T')[0]); setShowForm(false); setSaving(false)
+    setAmount(''); setDescription(''); setDate(new Date().toISOString().split('T')[0]); setShowForm(false); setSaving(false); setCategoryCollapsed(false)
     fetchData()
   }
 
@@ -194,7 +195,7 @@ export default function HarcamaPage() {
 
         {!showForm && !showTransfer && (
           <div className="flex gap-2 mb-4">
-            <button onClick={() => setShowForm(true)} className="flex-1 py-3.5 bg-red-600 text-white font-semibold rounded-xl flex items-center justify-center gap-2">
+            <button onClick={() => { setShowForm(true); setCategoryCollapsed(false) }} className="flex-1 py-3.5 bg-red-600 text-white font-semibold rounded-xl flex items-center justify-center gap-2">
               <Plus size={20} /> Harcama Ekle
             </button>
             <button onClick={() => setShowTransfer(true)} className="flex-1 py-3.5 bg-blue-600 text-white font-semibold rounded-xl flex items-center justify-center gap-2">
@@ -241,69 +242,92 @@ export default function HarcamaPage() {
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="text-sm font-medium text-zinc-300">Kategori</label>
-                  <button
-                    type="button"
-                    onClick={() => setShowNewCat(v => !v)}
-                    className="flex items-center gap-1 text-xs text-green-400 active:text-green-300"
-                  >
-                    {showNewCat ? <X size={13} /> : <Plus size={13} />}
-                    {showNewCat ? 'Vazgeç' : 'Yeni kategori'}
-                  </button>
-                </div>
-
-                {showNewCat ? (
-                  <div className="bg-zinc-800 rounded-xl p-3 border border-zinc-700 space-y-3">
-                    <input
-                      type="text"
-                      value={newCatName}
-                      onChange={e => setNewCatName(e.target.value)}
-                      placeholder="Kategori adı (örn: Otopark)"
-                      className="w-full px-3 py-2.5 rounded-lg border border-zinc-600 bg-zinc-700 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
-                      autoFocus
-                    />
-                    <div>
-                      <p className="text-xs text-zinc-400 mb-2">İkon seç:</p>
-                      <div className="grid grid-cols-9 gap-1.5">
-                        {ICONS.map(ic => (
-                          <button
-                            key={ic}
-                            type="button"
-                            onClick={() => setNewCatIcon(ic)}
-                            className={`text-xl py-1 rounded-lg ${newCatIcon === ic ? 'bg-green-900 ring-2 ring-green-500' : 'bg-zinc-700'}`}
-                          >
-                            {ic}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+                  {!categoryCollapsed && (
                     <button
                       type="button"
-                      onClick={handleAddCategory}
-                      disabled={savingCat || !newCatName.trim()}
-                      className="w-full py-2 bg-green-600 text-white text-sm font-semibold rounded-lg disabled:opacity-50"
+                      onClick={() => { setShowNewCat(v => !v); setCategoryCollapsed(false) }}
+                      className="flex items-center gap-1 text-xs text-green-400 active:text-green-300"
                     >
-                      {savingCat ? 'Kaydediliyor...' : `${newCatIcon} "${newCatName || '...'}" kategorisini ekle`}
+                      {showNewCat ? <X size={13} /> : <Plus size={13} />}
+                      {showNewCat ? 'Vazgeç' : 'Yeni kategori'}
                     </button>
-                  </div>
-                ) : (
-                  <div className="rounded-xl border border-zinc-700 bg-zinc-800 overflow-hidden">
-                    {categories.map((cat, i) => (
-                      <div key={cat.id} className={`flex items-center justify-between px-3 py-2.5 ${i < categories.length - 1 ? 'border-b border-zinc-700' : ''} ${categoryId === cat.id ? 'bg-green-900/40' : ''}`}>
-                        <button type="button" onClick={() => setCategoryId(cat.id)} className="flex items-center gap-2 flex-1">
-                          <span className="text-lg">{cat.icon}</span>
-                          <span className={`text-sm font-medium ${categoryId === cat.id ? 'text-green-400' : 'text-zinc-300'}`}>{cat.name}</span>
-                        </button>
-                        <button type="button" onClick={async () => {
-                          await supabase.from('expense_categories').delete().eq('id', cat.id)
-                          setCategories(prev => prev.filter(c => c.id !== cat.id))
-                          if (categoryId === cat.id) setCategoryId(categories.find(c => c.id !== cat.id)?.id || '')
-                        }} className="p-1 text-zinc-600 active:text-red-400">
-                          <X size={14} />
-                        </button>
+                  )}
+                </div>
+
+                {/* Seçili kategori chip — sadece collapsed modda görünür */}
+                <div className={`transition-all duration-200 overflow-hidden ${categoryCollapsed ? 'max-h-12 opacity-100 mb-0' : 'max-h-0 opacity-0'}`}>
+                  {(() => {
+                    const selCat = categories.find(c => c.id === categoryId)
+                    return selCat ? (
+                      <button
+                        type="button"
+                        onClick={() => setCategoryCollapsed(false)}
+                        className="flex items-center gap-2 px-3 py-2 rounded-xl border border-green-700 bg-green-900/30 text-green-400 text-sm font-medium w-full"
+                      >
+                        <span className="text-base">{selCat.icon}</span>
+                        <span className="flex-1 text-left">{selCat.name}</span>
+                        <Pencil size={13} className="text-green-600" />
+                      </button>
+                    ) : null
+                  })()}
+                </div>
+
+                {/* Kategori listesi — collapsed olduğunda yukarı kayar */}
+                <div className={`transition-all duration-300 overflow-hidden ${categoryCollapsed ? 'max-h-0 opacity-0' : 'max-h-[500px] opacity-100'}`}>
+                  {showNewCat ? (
+                    <div className="bg-zinc-800 rounded-xl p-3 border border-zinc-700 space-y-3">
+                      <input
+                        type="text"
+                        value={newCatName}
+                        onChange={e => setNewCatName(e.target.value)}
+                        placeholder="Kategori adı (örn: Otopark)"
+                        className="w-full px-3 py-2.5 rounded-lg border border-zinc-600 bg-zinc-700 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
+                        autoFocus
+                      />
+                      <div>
+                        <p className="text-xs text-zinc-400 mb-2">İkon seç:</p>
+                        <div className="grid grid-cols-9 gap-1.5">
+                          {ICONS.map(ic => (
+                            <button
+                              key={ic}
+                              type="button"
+                              onClick={() => setNewCatIcon(ic)}
+                              className={`text-xl py-1 rounded-lg ${newCatIcon === ic ? 'bg-green-900 ring-2 ring-green-500' : 'bg-zinc-700'}`}
+                            >
+                              {ic}
+                            </button>
+                          ))}
+                        </div>
                       </div>
-                    ))}
-                  </div>
-                )}
+                      <button
+                        type="button"
+                        onClick={handleAddCategory}
+                        disabled={savingCat || !newCatName.trim()}
+                        className="w-full py-2 bg-green-600 text-white text-sm font-semibold rounded-lg disabled:opacity-50"
+                      >
+                        {savingCat ? 'Kaydediliyor...' : `${newCatIcon} "${newCatName || '...'}" kategorisini ekle`}
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border border-zinc-700 bg-zinc-800 overflow-hidden">
+                      {categories.map((cat, i) => (
+                        <div key={cat.id} className={`flex items-center justify-between px-3 py-2.5 ${i < categories.length - 1 ? 'border-b border-zinc-700' : ''} ${categoryId === cat.id ? 'bg-green-900/40' : ''}`}>
+                          <button type="button" onClick={() => { setCategoryId(cat.id); setCategoryCollapsed(true) }} className="flex items-center gap-2 flex-1">
+                            <span className="text-lg">{cat.icon}</span>
+                            <span className={`text-sm font-medium ${categoryId === cat.id ? 'text-green-400' : 'text-zinc-300'}`}>{cat.name}</span>
+                          </button>
+                          <button type="button" onClick={async () => {
+                            await supabase.from('expense_categories').delete().eq('id', cat.id)
+                            setCategories(prev => prev.filter(c => c.id !== cat.id))
+                            if (categoryId === cat.id) setCategoryId(categories.find(c => c.id !== cat.id)?.id || '')
+                          }} className="p-1 text-zinc-600 active:text-red-400">
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div>
@@ -325,7 +349,7 @@ export default function HarcamaPage() {
                 </div>
               </div>
               <div className="flex gap-3 pt-1">
-                <button type="button" onClick={() => { setShowForm(false); setShowNewCat(false) }} className="flex-1 py-3 rounded-xl border border-zinc-700 text-zinc-300 font-medium">İptal</button>
+                <button type="button" onClick={() => { setShowForm(false); setShowNewCat(false); setCategoryCollapsed(false) }} className="flex-1 py-3 rounded-xl border border-zinc-700 text-zinc-300 font-medium">İptal</button>
                 <button type="submit" disabled={saving || showNewCat} className="flex-1 py-3 bg-red-600 text-white font-semibold rounded-xl disabled:opacity-50">{saving ? 'Kaydediliyor...' : 'Kaydet'}</button>
               </div>
             </form>
