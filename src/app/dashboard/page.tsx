@@ -20,7 +20,9 @@ const PIE_COLORS = ['#22c55e','#ef4444','#3b82f6','#f59e0b','#8b5cf6','#ec4899',
 
 type Tab = 'tumu' | 'ben' | 'esim'
 
-const renderPieLabel = ({ cx, cy, midAngle, outerRadius, name, icon }: { cx: number; cy: number; midAngle: number; outerRadius: number; name: string; icon: string }) => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const renderPieLabel = (props: any) => {
+  const { cx, cy, midAngle, outerRadius, name, icon } = props
   const RADIAN = Math.PI / 180
   const radius = outerRadius + 20
   const x = cx + radius * Math.cos(-midAngle * RADIAN)
@@ -314,8 +316,8 @@ export default function DashboardPage() {
                             outerRadius={pieExpanded ? 98 : 82}
                             paddingAngle={2}
                             dataKey="value"
-                            label={pieExpanded ? renderPieLabel : false}
-                            labelLine={pieExpanded ? { stroke: '#52525b', strokeWidth: 1 } : false}
+                            label={pieExpanded ? renderPieLabel : undefined}
+                            labelLine={pieExpanded ? { stroke: '#52525b', strokeWidth: 1 } : undefined}
                           >
                             {pieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                           </Pie>
