@@ -22,14 +22,25 @@ export default function BottomNav() {
   useEffect(() => {
     let startX = 0
     let startY = 0
+    let intercepting = false
 
     const onTouchStart = (e: TouchEvent) => {
       startX = e.touches[0].clientX
       startY = e.touches[0].clientY
+      intercepting = false
+    }
+
+    const onTouchMove = (e: TouchEvent) => {
+      const dx = Math.abs(e.touches[0].clientX - startX)
+      const dy = Math.abs(e.touches[0].clientY - startY)
+      if (dx > 10 && dx > dy) {
+        intercepting = true
+        e.preventDefault()
+      }
     }
 
     const onTouchEnd = (e: TouchEvent) => {
-      if (navigatingRef.current) return
+      if (!intercepting || navigatingRef.current) return
       const dx = e.changedTouches[0].clientX - startX
       const dy = e.changedTouches[0].clientY - startY
       if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy)) return
@@ -47,9 +58,11 @@ export default function BottomNav() {
     }
 
     document.addEventListener('touchstart', onTouchStart, { passive: true })
+    document.addEventListener('touchmove', onTouchMove, { passive: false })
     document.addEventListener('touchend', onTouchEnd, { passive: true })
     return () => {
       document.removeEventListener('touchstart', onTouchStart)
+      document.removeEventListener('touchmove', onTouchMove)
       document.removeEventListener('touchend', onTouchEnd)
     }
   }, [router])
