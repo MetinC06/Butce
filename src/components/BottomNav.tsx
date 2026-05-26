@@ -16,9 +16,8 @@ export default function BottomNav() {
   const pathname = usePathname()
   const router = useRouter()
   const pathnameRef = useRef(pathname)
+  pathnameRef.current = pathname
   const navigatingRef = useRef(false)
-
-  useEffect(() => { pathnameRef.current = pathname }, [pathname])
 
   useEffect(() => {
     let startX = 0
