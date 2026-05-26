@@ -29,11 +29,11 @@ const renderPieLabel = (props: any) => {
   const x = cx + radius * Math.cos(-midAngle * RADIAN)
   const y = cy + radius * Math.sin(-midAngle * RADIAN)
   const label = name.length > 8 ? name.slice(0, 8) + '…' : name
-  const pct = `%${Math.round(percent * 100)}`
+  const showPct = percent >= 0.05
   return (
     <text x={x} y={y} textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" fontSize={9} fill="#a1a1aa">
       <tspan>{icon} {label}</tspan>
-      <tspan x={x} dy="12" fontSize={8} fill="#71717a">{pct}</tspan>
+      {showPct && <tspan x={x} dy="12" fontSize={8} fill="#71717a">%{Math.round(percent * 100)}</tspan>}
     </text>
   )
 }
