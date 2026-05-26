@@ -20,6 +20,19 @@ const PIE_COLORS = ['#22c55e','#ef4444','#3b82f6','#f59e0b','#8b5cf6','#ec4899',
 
 type Tab = 'tumu' | 'ben' | 'esim'
 
+const renderPieLabel = ({ cx, cy, midAngle, outerRadius, name, icon }: { cx: number; cy: number; midAngle: number; outerRadius: number; name: string; icon: string }) => {
+  const RADIAN = Math.PI / 180
+  const radius = outerRadius + 20
+  const x = cx + radius * Math.cos(-midAngle * RADIAN)
+  const y = cy + radius * Math.sin(-midAngle * RADIAN)
+  const label = name.length > 9 ? name.slice(0, 9) + '…' : name
+  return (
+    <text x={x} y={y} textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" fontSize={9} fill="#a1a1aa">
+      {icon} {label}
+    </text>
+  )
+}
+
 const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ name: string; value: number }> }) => {
   if (active && payload?.length) {
     return (
@@ -42,6 +55,7 @@ export default function DashboardPage() {
   const [savings, setSavings] = useState<Saving[]>([])
   const [loading, setLoading] = useState(true)
   const [trendData, setTrendData] = useState<Array<{ month: string; gelir: number; gider: number }>>([])
+  const [pieExpanded, setPieExpanded] = useState(false)
 
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [myName, setMyName] = useState('Ben')
@@ -287,17 +301,30 @@ export default function DashboardPage() {
 
                 {pieData.length > 0 && (
                   <div>
-                    <p className="text-sm font-semibold text-zinc-300 mb-3">Harcama Dağılımı</p>
-                    <ResponsiveContainer width="100%" height={190}>
-                      <PieChart>
-                        <Pie data={pieData} cx="50%" cy="50%" innerRadius={52} outerRadius={82} paddingAngle={2} dataKey="value">
-                          {pieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
-                        </Pie>
-                        <Tooltip content={<CustomTooltip />} />
-                      </PieChart>
-                    </ResponsiveContainer>
+                    <p className="text-sm font-semibold text-zinc-300 mb-1">Harcama Dağılımı</p>
+                    <p className="text-xs text-zinc-600 mb-3">Detay için grafiye dokun</p>
+                    <div onClick={() => setPieExpanded(v => !v)} className="cursor-pointer">
+                      <ResponsiveContainer width="100%" height={pieExpanded ? 290 : 190}>
+                        <PieChart>
+                          <Pie
+                            data={pieData}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={pieExpanded ? 62 : 52}
+                            outerRadius={pieExpanded ? 98 : 82}
+                            paddingAngle={2}
+                            dataKey="value"
+                            label={pieExpanded ? renderPieLabel : false}
+                            labelLine={pieExpanded ? { stroke: '#52525b', strokeWidth: 1 } : false}
+                          >
+                            {pieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                          </Pie>
+                          <Tooltip content={<CustomTooltip />} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
                     <div className="space-y-1.5 mt-1">
-                      {pieData.slice(0, 6).map((item, i) => (
+                      {pieData.map((item, i) => (
                         <div key={i} className="flex items-center gap-2">
                           <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
                           <span className="text-xs text-zinc-400 flex-1 truncate">{item.icon} {item.name}</span>
