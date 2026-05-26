@@ -316,7 +316,7 @@ export default function HarcamaPage() {
                       </button>
                     </div>
                   ) : (
-                    <div className="rounded-xl border border-zinc-700 bg-zinc-800 overflow-hidden">
+                    <div className="rounded-xl border border-zinc-700 bg-zinc-800 overflow-y-auto max-h-52">
                       {categories.map((cat, i) => (
                         <div key={cat.id} className={`flex items-center justify-between px-3 py-2.5 ${i < categories.length - 1 ? 'border-b border-zinc-700' : ''} ${categoryId === cat.id ? 'bg-green-900/40' : ''}`}>
                           <button type="button" onClick={() => { setCategoryId(cat.id); setCategoryCollapsed(true) }} className="flex items-center gap-2 flex-1">
