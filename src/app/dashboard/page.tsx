@@ -22,15 +22,18 @@ type Tab = 'tumu' | 'ben' | 'esim'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const renderPieLabel = (props: any) => {
-  const { cx, cy, midAngle, outerRadius, name, icon } = props
+  const { cx, cy, midAngle, outerRadius, name, icon, percent } = props
+  if (percent < 0.05) return null
   const RADIAN = Math.PI / 180
   const radius = outerRadius + 20
   const x = cx + radius * Math.cos(-midAngle * RADIAN)
   const y = cy + radius * Math.sin(-midAngle * RADIAN)
-  const label = name.length > 9 ? name.slice(0, 9) + '…' : name
+  const label = name.length > 8 ? name.slice(0, 8) + '…' : name
+  const pct = `%${Math.round(percent * 100)}`
   return (
     <text x={x} y={y} textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" fontSize={9} fill="#a1a1aa">
-      {icon} {label}
+      <tspan>{icon} {label}</tspan>
+      <tspan x={x} dy="12" fontSize={8} fill="#71717a">{pct}</tspan>
     </text>
   )
 }
