@@ -82,9 +82,9 @@ export default function GelirPage() {
   const myIncomes = incomes.filter(i => i.user_id === currentUserId)
   const spouseIncomes = incomes.filter(i => i.user_id !== currentUserId)
   const tabIncomes = tab === 'tumu' ? incomes : tab === 'ben' ? myIncomes : spouseIncomes
-  const total = incomes.reduce((s, i) => s + Number(i.amount), 0)
-  const myTotal = myIncomes.reduce((s, i) => s + Number(i.amount), 0)
-  const spouseTotal = spouseIncomes.reduce((s, i) => s + Number(i.amount), 0)
+  const total = incomes.filter(i => i.description !== 'TRANSFER_IN').reduce((s, i) => s + Number(i.amount), 0)
+  const myTotal = myIncomes.filter(i => i.description !== 'TRANSFER_IN').reduce((s, i) => s + Number(i.amount), 0)
+  const spouseTotal = spouseIncomes.filter(i => i.description !== 'TRANSFER_IN').reduce((s, i) => s + Number(i.amount), 0)
 
   return (
     <div className="min-h-screen bg-zinc-950">
