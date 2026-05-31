@@ -427,16 +427,18 @@ export default function HarcamaPage() {
                     {isEditing && (
                       <div className="px-4 pb-4 space-y-2.5">
                         <div className="grid grid-cols-2 gap-2">
-                          <div>
+                          <div className="min-w-0">
                             <label className="text-xs text-zinc-400 mb-1 block">Tutar (€)</label>
                             <input type="text" value={editAmount} onChange={e => setEditAmount(e.target.value)}
                               className="w-full px-3 py-2.5 rounded-xl border border-zinc-700 bg-zinc-800 text-white focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
                               inputMode="decimal" autoFocus />
                           </div>
-                          <div>
+                          <div className="min-w-0">
                             <label className="text-xs text-zinc-400 mb-1 block">Tarih</label>
-                            <input type="date" value={editDate} onChange={e => setEditDate(e.target.value)}
-                              className="w-full min-w-0 max-w-full px-3 py-2.5 rounded-xl border border-zinc-700 bg-zinc-800 text-white focus:outline-none focus:ring-2 focus:ring-red-500 text-sm" />
+                            <div className="overflow-hidden rounded-xl">
+                              <input type="date" value={editDate} onChange={e => setEditDate(e.target.value)}
+                                className="w-full min-w-0 max-w-full px-3 py-2.5 border border-zinc-700 bg-zinc-800 text-white focus:outline-none focus:ring-2 focus:ring-red-500 text-sm rounded-xl" />
+                            </div>
                           </div>
                         </div>
                         <div>
