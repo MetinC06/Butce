@@ -140,15 +140,15 @@ export default function DashboardPage() {
     const trendStart = `${months[0].year}-${String(months[0].month).padStart(2, '0')}-01`
     const trendEnd = new Date(year, month, 0).toISOString().split('T')[0]
     const [{ data: inc }, { data: exp }] = await Promise.all([
-      supabase.from('incomes').select('amount, date').gte('date', trendStart).lte('date', trendEnd),
-      supabase.from('expenses').select('amount, date').gte('date', trendStart).lte('date', trendEnd),
+      supabase.from('incomes').select('amount, date, description').gte('date', trendStart).lte('date', trendEnd),
+      supabase.from('expenses').select('amount, date, description').gte('date', trendStart).lte('date', trendEnd),
     ])
     const today = new Date().toISOString().split('T')[0]
     const data = months.map(({ year: y, month: m }) => {
       const mStart = `${y}-${String(m).padStart(2, '0')}-01`
       const mEnd = new Date(y, m, 0).toISOString().split('T')[0]
-      const gelir = (inc || []).filter(i => i.date >= mStart && i.date <= mEnd).reduce((s, i) => s + Number(i.amount), 0)
-      const gider = (exp || []).filter(e => e.date >= mStart && e.date <= mEnd && e.date <= today).reduce((s, e) => s + Number(e.amount), 0)
+      const gelir = (inc || []).filter(i => i.date >= mStart && i.date <= mEnd && i.description !== 'TRANSFER_IN').reduce((s, i) => s + Number(i.amount), 0)
+      const gider = (exp || []).filter(e => e.date >= mStart && e.date <= mEnd && e.date <= today && e.description !== 'TRANSFER_OUT').reduce((s, e) => s + Number(e.amount), 0)
       const monthLabel = new Date(y, m - 1).toLocaleDateString('tr-TR', { month: 'short' })
       return { month: monthLabel, gelir, gider }
     })
@@ -161,8 +161,8 @@ export default function DashboardPage() {
   const nextMonth = () => { if (month === 12) { setYear(y => y + 1); setMonth(1) } else setMonth(m => m + 1) }
 
   const today = new Date().toISOString().split('T')[0]
-  const totalIncome = incomes.reduce((s, i) => s + Number(i.amount), 0)
-  const totalExpense = expenses.filter(e => e.date <= today).reduce((s, e) => s + Number(e.amount), 0)
+  const totalIncome = incomes.filter(i => i.description !== 'TRANSFER_IN').reduce((s, i) => s + Number(i.amount), 0)
+  const totalExpense = expenses.filter(e => e.date <= today && e.description !== 'TRANSFER_OUT').reduce((s, e) => s + Number(e.amount), 0)
   const balance = carryover + totalIncome - totalExpense
   const available = balance - nextMonthReserved
 
@@ -173,8 +173,8 @@ export default function DashboardPage() {
 
   const tabIncomes = tab === 'tumu' ? incomes : tab === 'ben' ? myIncomes : spouseIncomes
   const tabExpenses = tab === 'tumu' ? expenses : tab === 'ben' ? myExpenses : spouseExpenses
-  const tabIncome = tabIncomes.reduce((s, i) => s + Number(i.amount), 0)
-  const tabExpense = tabExpenses.filter(e => e.date <= today).reduce((s, e) => s + Number(e.amount), 0)
+  const tabIncome = tabIncomes.filter(i => tab !== 'tumu' || i.description !== 'TRANSFER_IN').reduce((s, i) => s + Number(i.amount), 0)
+  const tabExpense = tabExpenses.filter(e => e.date <= today && (tab !== 'tumu' || e.description !== 'TRANSFER_OUT')).reduce((s, e) => s + Number(e.amount), 0)
   const tabCarryover = tab === 'ben' ? myCarryover : tab === 'esim' ? spouseCarryover : carryover
   const tabNextReserved = tab === 'ben' ? myNextReserved : tab === 'esim' ? spouseNextReserved : nextMonthReserved
   const tabBalance = tabCarryover + tabIncome - tabExpense
