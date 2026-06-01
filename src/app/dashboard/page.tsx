@@ -161,10 +161,12 @@ export default function DashboardPage() {
   const nextMonth = () => { if (month === 12) { setYear(y => y + 1); setMonth(1) } else setMonth(m => m + 1) }
 
   const today = new Date().toISOString().split('T')[0]
+  const isCurrentMonth = year === now.getFullYear() && month === now.getMonth() + 1
+
   const totalIncome = incomes.filter(i => i.description !== 'TRANSFER_IN').reduce((s, i) => s + Number(i.amount), 0)
   const totalExpense = expenses.filter(e => e.date <= today && e.description !== 'TRANSFER_OUT').reduce((s, e) => s + Number(e.amount), 0)
   const balance = carryover + totalIncome - totalExpense
-  const available = balance - nextMonthReserved
+  const available = isCurrentMonth ? balance - nextMonthReserved : balance
 
   const myIncomes = incomes.filter(i => i.user_id === currentUserId)
   const myExpenses = expenses.filter(e => e.user_id === currentUserId)
@@ -178,7 +180,7 @@ export default function DashboardPage() {
   const tabCarryover = tab === 'ben' ? myCarryover : tab === 'esim' ? spouseCarryover : carryover
   const tabNextReserved = tab === 'ben' ? myNextReserved : tab === 'esim' ? spouseNextReserved : nextMonthReserved
   const tabBalance = tabCarryover + tabIncome - tabExpense
-  const tabAvailable = tabBalance - tabNextReserved
+  const tabAvailable = isCurrentMonth ? tabBalance - tabNextReserved : tabBalance
 
   const categoryMap: Record<string, { name: string; icon: string; value: number }> = {}
   tabExpenses.forEach(exp => {
@@ -216,7 +218,7 @@ export default function DashboardPage() {
             {/* Birleşik bakiye */}
             <div className={`rounded-2xl p-5 mb-3 ${available >= 0 ? 'bg-green-600' : 'bg-red-600'}`}>
               <p className="text-green-100 text-sm font-medium mb-1">
-                {nextMonthReserved > 0 ? 'Kullanılabilir Bakiye (Aile)' : 'Toplam Bakiye (Aile)'}
+                {isCurrentMonth && nextMonthReserved > 0 ? 'Kullanılabilir Bakiye (Aile)' : 'Toplam Bakiye (Aile)'}
               </p>
               <p className="text-3xl font-bold text-white">
                 <CountUp value={available} formatter={formatEUR} />
@@ -230,14 +232,14 @@ export default function DashboardPage() {
                 )}
                 <div><p className="text-green-200 text-xs">Gelir</p><p className="text-white font-bold text-sm"><CountUp value={totalIncome} formatter={formatEUR} /></p></div>
                 <div><p className="text-green-200 text-xs">Gider</p><p className="text-white font-bold text-sm"><CountUp value={totalExpense} formatter={formatEUR} /></p></div>
-                {nextMonthReserved > 0 && (
+                {isCurrentMonth && nextMonthReserved > 0 && (
                   <div>
                     <p className="text-amber-200 text-xs">Ayrılan</p>
                     <p className="text-amber-200 font-bold text-sm">-{formatEUR(nextMonthReserved)}</p>
                   </div>
                 )}
               </div>
-              {nextMonthReserved > 0 && (
+              {isCurrentMonth && nextMonthReserved > 0 && (
                 <p className="text-green-100/60 text-xs mt-2">
                   Gelecek ay için {formatEUR(nextMonthReserved)} ayrıldı
                 </p>
@@ -258,7 +260,7 @@ export default function DashboardPage() {
                 {tab !== 'tumu' ? (
                   <div className={`rounded-2xl p-4 mb-4 ${tabAvailable >= 0 ? 'bg-green-600' : 'bg-red-600'}`}>
                     <p className="text-green-100 text-sm font-medium mb-1">
-                      {tab === 'ben' ? myName : spouseName} · {tabNextReserved > 0 ? 'Kullanılabilir Bakiye' : 'Anlık Bakiye'}
+                      {tab === 'ben' ? myName : spouseName} · {isCurrentMonth && tabNextReserved > 0 ? 'Kullanılabilir Bakiye' : 'Anlık Bakiye'}
                     </p>
                     <p className="text-3xl font-bold text-white"><CountUp value={tabAvailable} formatter={formatEUR} /></p>
                     <div className="flex flex-wrap gap-4 mt-3">
@@ -276,14 +278,14 @@ export default function DashboardPage() {
                         <p className="text-green-200 text-xs">Gider</p>
                         <p className="text-white font-bold text-sm"><CountUp value={tabExpense} formatter={formatEUR} /></p>
                       </div>
-                      {tabNextReserved > 0 && (
+                      {isCurrentMonth && tabNextReserved > 0 && (
                         <div>
                           <p className="text-amber-200 text-xs">Ayrılan</p>
                           <p className="text-amber-200 font-bold text-sm">-{formatEUR(tabNextReserved)}</p>
                         </div>
                       )}
                     </div>
-                    {tabNextReserved > 0 && (
+                    {isCurrentMonth && tabNextReserved > 0 && (
                       <p className="text-green-100/60 text-xs mt-2">
                         Gelecek ay için {formatEUR(tabNextReserved)} ayrıldı
                       </p>
