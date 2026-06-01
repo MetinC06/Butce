@@ -21,7 +21,8 @@ export async function GET(request: NextRequest) {
   const tickers = request.nextUrl.searchParams.get('tickers')
   const tickerList = tickers ? tickers.split(',').filter(Boolean).map(t => t.trim()) : []
 
-  const allTickers = [...tickerList, 'EURTRY=X', 'EURUSD=X']
+  const fxTickers = ['EURTRY=X', 'EURUSD=X', 'EURGBP=X']
+  const allTickers = [...tickerList, ...fxTickers]
   const results = await Promise.allSettled(allTickers.map(t => fetchYahoo(t)))
 
   const prices: Record<string, number> = {}
@@ -38,12 +39,10 @@ export async function GET(request: NextRequest) {
   const rates = {
     EURTRY: prices['EURTRY=X'] || 0,
     EURUSD: prices['EURUSD=X'] || 0,
+    EURGBP: prices['EURGBP=X'] || 0,
   }
 
-  delete prices['EURTRY=X']
-  delete prices['EURUSD=X']
-  delete currencies['EURTRY=X']
-  delete currencies['EURUSD=X']
+  fxTickers.forEach(t => { delete prices[t]; delete currencies[t] })
 
   return NextResponse.json({ prices, currencies, rates })
 }

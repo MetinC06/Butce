@@ -42,23 +42,31 @@ CREATE TABLE savings (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Portföy (hisse senetleri)
-CREATE TABLE portfolio (
+-- Portföy işlemleri (her alım/satım kaydı). Lot sayısı uygulamada hesaplanır.
+CREATE TABLE portfolio_transactions (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
   ticker TEXT NOT NULL,
   company_name TEXT,
-  lots DECIMAL(10,4) NOT NULL CHECK (lots > 0),
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(user_id, ticker)
+  type TEXT NOT NULL CHECK (type IN ('buy', 'sell')),
+  lots DECIMAL(14, 6) NOT NULL CHECK (lots > 0),
+  price_per_lot DECIMAL(18, 6) NOT NULL CHECK (price_per_lot >= 0),
+  currency TEXT NOT NULL,
+  eur_rate DECIMAL(18, 8) NOT NULL CHECK (eur_rate > 0),
+  fee DECIMAL(14, 4) NOT NULL DEFAULT 0 CHECK (fee >= 0),
+  transaction_date DATE NOT NULL,
+  note TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
+CREATE INDEX portfolio_transactions_user_ticker_date_idx
+  ON portfolio_transactions (user_id, ticker, transaction_date);
 
 -- Row Level Security'yi aç
 ALTER TABLE expense_categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE incomes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE expenses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE savings ENABLE ROW LEVEL SECURITY;
-ALTER TABLE portfolio ENABLE ROW LEVEL SECURITY;
+ALTER TABLE portfolio_transactions ENABLE ROW LEVEL SECURITY;
 
 -- Kategoriler - tüm giriş yapmış kullanıcılar görebilir (aile uygulaması)
 CREATE POLICY "categories_select" ON expense_categories FOR SELECT TO authenticated USING (true);
@@ -81,11 +89,11 @@ CREATE POLICY "savings_insert" ON savings FOR INSERT TO authenticated WITH CHECK
 CREATE POLICY "savings_update" ON savings FOR UPDATE TO authenticated USING (user_id = auth.uid());
 CREATE POLICY "savings_delete" ON savings FOR DELETE TO authenticated USING (user_id = auth.uid());
 
--- Portföy
-CREATE POLICY "portfolio_select" ON portfolio FOR SELECT TO authenticated USING (true);
-CREATE POLICY "portfolio_insert" ON portfolio FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "portfolio_update" ON portfolio FOR UPDATE TO authenticated USING (user_id = auth.uid());
-CREATE POLICY "portfolio_delete" ON portfolio FOR DELETE TO authenticated USING (user_id = auth.uid());
+-- Portföy işlemleri
+CREATE POLICY "portfolio_tx_select" ON portfolio_transactions FOR SELECT TO authenticated USING (true);
+CREATE POLICY "portfolio_tx_insert" ON portfolio_transactions FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "portfolio_tx_update" ON portfolio_transactions FOR UPDATE TO authenticated USING (user_id = auth.uid());
+CREATE POLICY "portfolio_tx_delete" ON portfolio_transactions FOR DELETE TO authenticated USING (user_id = auth.uid());
 
 -- Varsayılan kategoriler
 INSERT INTO expense_categories (name, icon, color, is_default) VALUES

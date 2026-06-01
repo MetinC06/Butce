@@ -24,6 +24,9 @@
 .DS_Store
 *.pem
 
+# kişisel işlem belgeleri (BIST PDF'leri)
+/portfoy_ıslemler/
+
 # debug
 npm-debug.log*
 yarn-debug.log*

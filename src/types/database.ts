@@ -36,11 +36,20 @@ export type Saving = {
   updated_at: string
 }
 
-export type PortfolioItem = {
+export type TransactionType = 'buy' | 'sell'
+
+export type PortfolioTransaction = {
   id: string
   user_id: string
   ticker: string
   company_name: string | null
+  type: TransactionType
   lots: number
+  price_per_lot: number
+  currency: string
+  eur_rate: number          // işlem tarihinde 1 birim para = X EUR
+  fee: number               // kendi para biriminde
+  transaction_date: string  // YYYY-MM-DD
+  note: string | null
   created_at: string
 }
